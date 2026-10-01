@@ -139,7 +139,7 @@ CONTENT_SECURITY_POLICY = (
 )
 
 app = FastAPI(
-    title="SEC Filing Portal API",
+    title="Share Document Portal API",
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs" if _expose_docs else None,
