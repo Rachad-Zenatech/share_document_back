@@ -118,7 +118,7 @@ def register_all(mcp):
     for tool_fn in ALL_TOOLS:
         mcp.add_tool(tool_fn)
     for prompt_fn in ALL_PROMPTS:
-        mcp.add_prompt(prompt_fn)
+        mcp.add_prompt(Prompt.from_function(prompt_fn))
 
 
 async def ask_gemini_stream(message: str, history: list = None, file_data: str = None, mime_type: str = None):

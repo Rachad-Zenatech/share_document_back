@@ -288,8 +288,6 @@ async def logout(request: Request):
 async def dev_login(email: str):
     if os.getenv("APP_ENV", "development").lower() == "production":
         raise HTTPException(status_code=404, detail="Endpoint not available in production")
-    import os
-    from postgresql_db.database import get_pool
 
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:6000").rstrip("/")
 

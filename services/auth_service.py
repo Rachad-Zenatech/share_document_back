@@ -158,14 +158,18 @@ async def get_my_permissions(user_id: UUID):
                 if ac not in page_perms[pc]:
                     page_perms[pc].append(ac)
     # Fetch active workflow roles for this user
-    wf_roles_sql = """
-        SELECT DISTINCT role
-        FROM workflow_assignments
-        WHERE (user_id = $1 OR (user_ids IS NOT NULL AND $1 = ANY(user_ids)))
-        AND active = true
-    """
-    wf_rows = await fetch_all(wf_roles_sql, user_id)
-    wf_roles = [w["role"] for w in wf_rows if w.get("role") and not w["role"].startswith("DELETED_")]
+    wf_roles = []
+    try:
+        wf_roles_sql = """
+            SELECT DISTINCT role
+            FROM workflow_assignments
+            WHERE (user_id = $1 OR (user_ids IS NOT NULL AND $1 = ANY(user_ids)))
+            AND active = true
+        """
+        wf_rows = await fetch_all(wf_roles_sql, user_id)
+        wf_roles = [w["role"] for w in wf_rows if w.get("role") and not w["role"].startswith("DELETED_")]
+    except Exception:
+        wf_roles = []
 
     result = {
         "user": dict(user),
