@@ -1,0 +1,7 @@
+# Windsurf Rules
+
+- Always use `pool = get_pool()` synchronously (never `await get_pool()`).
+- Always invalidate cache on data mutations using `await emit_cache_invalidation(scope="...", key="...")`.
+- Eliminate N+1 queries by using `UNNEST` batch queries or atomic single statements.
+- Follow Pydantic models for non-trivial JSON bodies.
+- Never interpolate user values into SQL queries; use asyncpg placeholders `$1, $2, ...`.

@@ -1,0 +1,11 @@
+---
+description: Backend Architecture and Database Standards
+globs: **/*.py
+---
+
+# Backend Architecture Guidelines
+
+- Database Pool: Use `get_pool()` synchronously without `await`.
+- Caching: Use `services.cache_service` for caching permissions and configuration; emit invalidation on mutations.
+- Multi-row queries: Use `UNNEST` batch queries instead of executing queries in loops.
+- Use parameterized SQL queries with `$1, $2, ...` to prevent injection.

@@ -1,0 +1,6 @@
+# Cursor Rules
+
+- Synchronous database pool access: `pool = get_pool()`.
+- Use Tier-1 in-memory caching with PostgreSQL NOTIFY event invalidations (`services/cache_service.py`).
+- Avoid N+1 query loops; batch multi-row inserts and updates with PostgreSQL `UNNEST`.
+- Validate all backend changes with `wsl python3 -m py_compile <files>`.
