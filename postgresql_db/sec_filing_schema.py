@@ -88,6 +88,31 @@ CREATE TABLE IF NOT EXISTS sec_signature_envelopes (
 
 CREATE INDEX IF NOT EXISTS sec_signature_envelopes_env_idx
     ON sec_signature_envelopes (envelope_id);
+
+-- Attached Dynamic Spreadsheets for Document Variable Linking
+CREATE TABLE IF NOT EXISTS sec_attached_spreadsheets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id VARCHAR NOT NULL,
+    name VARCHAR NOT NULL DEFAULT 'Spreadsheet',
+    sheet_name VARCHAR NOT NULL DEFAULT 'Sheet1',
+    total_rows INTEGER NOT NULL DEFAULT 20,
+    total_columns INTEGER NOT NULL DEFAULT 10,
+    columns JSONB NOT NULL DEFAULT '[]'::jsonb,
+    cells JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID REFERENCES users(id),
+    updated_by UUID REFERENCES users(id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS sec_attached_spreadsheets_doc_idx
+    ON sec_attached_spreadsheets (document_id);
+
+    -- Multi-tab support for attached spreadsheets
+    ALTER TABLE sec_attached_spreadsheets ADD COLUMN IF NOT EXISTS tabs JSONB NOT NULL DEFAULT '[]'::jsonb;
+    ALTER TABLE sec_attached_spreadsheets ADD COLUMN IF NOT EXISTS active_tab_id VARCHAR;
+
+
 """
 
 

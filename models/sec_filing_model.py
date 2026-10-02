@@ -5,7 +5,7 @@ step when either side changes.
 """
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -236,3 +236,33 @@ class MobileSignatureEnvelopeResponse(BaseModel):
     signed_via: str | None = Field(default=None, serialization_alias="signedVia")
     signed_at: datetime | None = Field(default=None, serialization_alias="signedAt")
     audit_trail_id: str | None = Field(default=None, serialization_alias="auditTrailId")
+
+
+class AttachedSpreadsheetColumnPayload(BaseModel):
+    key: str
+    title: str
+    width: int | None = None
+    type: str | None = None
+
+
+class AttachedSpreadsheetPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    id: str | None = None
+    document_id: str | None = Field(default=None, alias="documentId")
+    name: str = "Spreadsheet"
+    sheet_name: str = Field(default="Sheet1", alias="sheetName")
+    total_rows: int = Field(default=20, alias="totalRows")
+    total_columns: int = Field(default=10, alias="totalColumns")
+    columns: list[AttachedSpreadsheetColumnPayload] = []
+    cells: dict[str, Any] = {}
+    tabs: list[dict[str, Any]] = []
+    active_tab_id: str | None = Field(default=None, alias="activeTabId")
+    updated_at: datetime | None = Field(default=None, alias="updatedAt")
+
+
+class UpdateSpreadsheetCellPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    cell_ref: str = Field(alias="cellRef")
+    value: Any

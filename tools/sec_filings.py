@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from models.sec_filing_model import (
+    AttachedSpreadsheetPayload,
     FinancialTableTemplate,
     FinancialTableTemplateCreate,
     FinancialTableTemplateList,
@@ -13,6 +14,7 @@ from models.sec_filing_model import (
     MobileSignatureCompleteRequest,
     MobileSignatureDispatchRequest,
     MobileSignatureEnvelopeResponse,
+    UpdateSpreadsheetCellPayload,
 )
 from services.auth_service import require_permission
 from services.sec_filing_signature_service import (
@@ -21,6 +23,11 @@ from services.sec_filing_signature_service import (
     delete_envelope,
     dispatch_envelope,
     get_envelope,
+)
+from services.sec_filing_spreadsheet_service import (
+    get_document_spreadsheet,
+    save_document_spreadsheet,
+    update_spreadsheet_cell,
 )
 from services.sec_filing_template_service import (
     create_table_template,
@@ -185,3 +192,34 @@ async def delete_mobile_signature_envelope(
     """Deletes and removes signature envelope immediately so no signature data is retained."""
     deleted = await delete_envelope(envelope_id)
     return {"success": True, "deleted": deleted}
+
+
+# -----------------------------------------------------------------------------
+# Dynamic Attached Spreadsheets & Variable Sync
+# -----------------------------------------------------------------------------
+
+@router.get("/documents/{document_id}/spreadsheet")
+async def get_attached_spreadsheet_endpoint(document_id: str):
+    sheet = await get_document_spreadsheet(document_id)
+    if not sheet:
+        return {"documentId": document_id, "name": "Spreadsheet", "sheetName": "Sheet1", "totalRows": 20, "totalColumns": 10, "columns": [], "cells": {}}
+    return sheet
+
+
+@router.put("/documents/{document_id}/spreadsheet")
+async def save_attached_spreadsheet_endpoint(
+    document_id: str,
+    payload: AttachedSpreadsheetPayload,
+):
+    data = payload.model_dump(by_alias=False, exclude_none=True)
+    saved = await save_document_spreadsheet(document_id, data)
+    return saved
+
+
+@router.patch("/documents/{document_id}/spreadsheet/cells")
+async def update_spreadsheet_cell_endpoint(
+    document_id: str,
+    payload: UpdateSpreadsheetCellPayload,
+):
+    updated = await update_spreadsheet_cell(document_id, payload.cell_ref, payload.value)
+    return updated
