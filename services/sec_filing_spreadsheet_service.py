@@ -9,12 +9,43 @@ from postgresql_db.database import get_pool
 from postgresql_db.sec_filing_schema import ensure_schema
 
 
+_SPREADSHEET_COLUMNS = (
+    "id, document_id, name, sheet_name, total_rows, total_columns, columns, cells, "
+    "tabs, active_tab_id, source_sheet_id, updated_at"
+)
+
+
+def _load_json(value: Any, default: Any) -> Any:
+    if value is None:
+        return default
+    if isinstance(value, str):
+        return json.loads(value)
+    return value
+
+
+def _row_to_spreadsheet(row: Any) -> dict[str, Any]:
+    return {
+        "id": str(row["id"]),
+        "documentId": row["document_id"],
+        "name": row["name"],
+        "sheetName": row["sheet_name"],
+        "totalRows": row["total_rows"],
+        "totalColumns": row["total_columns"],
+        "columns": _load_json(row["columns"], []),
+        "cells": _load_json(row["cells"], {}),
+        "tabs": _load_json(row["tabs"], []),
+        "activeTabId": row["active_tab_id"],
+        "sourceSheetId": row["source_sheet_id"],
+        "updatedAt": row["updated_at"].isoformat() if row["updated_at"] else None,
+    }
+
+
 async def get_document_spreadsheet(document_id: str) -> dict[str, Any] | None:
     await ensure_schema()
     pool = await get_pool()
 
-    query = """
-        SELECT id, document_id, name, sheet_name, total_rows, total_columns, columns, cells, tabs, active_tab_id, updated_at
+    query = f"""
+        SELECT {_SPREADSHEET_COLUMNS}
         FROM sec_attached_spreadsheets
         WHERE document_id = $1;
     """
@@ -23,32 +54,19 @@ async def get_document_spreadsheet(document_id: str) -> dict[str, Any] | None:
         row = await conn.fetchrow(query, document_id)
         if not row:
             return None
+        return _row_to_spreadsheet(row)
 
-        columns = row["columns"]
-        if isinstance(columns, str):
-            columns = json.loads(columns)
 
-        cells = row["cells"]
-        if isinstance(cells, str):
-            cells = json.loads(cells)
+async def delete_document_spreadsheet(document_id: str) -> bool:
+    await ensure_schema()
+    pool = await get_pool()
 
-        tabs = row["tabs"] if "tabs" in row and row["tabs"] is not None else []
-        if isinstance(tabs, str):
-            tabs = json.loads(tabs)
-
-        return {
-            "id": str(row["id"]),
-            "documentId": row["document_id"],
-            "name": row["name"],
-            "sheetName": row["sheet_name"],
-            "totalRows": row["total_rows"],
-            "totalColumns": row["total_columns"],
-            "columns": columns,
-            "cells": cells,
-            "tabs": tabs,
-            "activeTabId": row["active_tab_id"] if "active_tab_id" in row else None,
-            "updatedAt": row["updated_at"].isoformat() if row["updated_at"] else None,
-        }
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "DELETE FROM sec_attached_spreadsheets WHERE document_id = $1;",
+            document_id,
+        )
+    return result.endswith(" 1")
 
 
 async def save_document_spreadsheet(
@@ -67,17 +85,19 @@ async def save_document_spreadsheet(
     cells = data.get("cells") or {}
     tabs = data.get("tabs") or []
     active_tab_id = data.get("activeTabId") or data.get("active_tab_id")
+    source_sheet_id = data.get("sourceSheetId") or data.get("source_sheet_id")
     now = datetime.now(timezone.utc)
 
     columns_json = json.dumps(columns) if not isinstance(columns, str) else columns
     cells_json = json.dumps(cells) if not isinstance(cells, str) else cells
     tabs_json = json.dumps(tabs) if not isinstance(tabs, str) else tabs
 
-    query = """
+    query = f"""
         INSERT INTO sec_attached_spreadsheets (
-            document_id, name, sheet_name, total_rows, total_columns, columns, cells, tabs, active_tab_id, updated_at, updated_by
+            document_id, name, sheet_name, total_rows, total_columns, columns, cells, tabs, active_tab_id,
+            updated_at, updated_by, source_sheet_id
         )
-        VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb, $9, $10, $11)
+        VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb, $9, $10, $11, $12)
         ON CONFLICT (document_id) DO UPDATE SET
             name = EXCLUDED.name,
             sheet_name = EXCLUDED.sheet_name,
@@ -88,8 +108,9 @@ async def save_document_spreadsheet(
             tabs = EXCLUDED.tabs,
             active_tab_id = EXCLUDED.active_tab_id,
             updated_at = EXCLUDED.updated_at,
-            updated_by = EXCLUDED.updated_by
-        RETURNING id, document_id, name, sheet_name, total_rows, total_columns, columns, cells, tabs, active_tab_id, updated_at;
+            updated_by = EXCLUDED.updated_by,
+            source_sheet_id = EXCLUDED.source_sheet_id
+        RETURNING {_SPREADSHEET_COLUMNS};
     """
 
     async with pool.acquire() as conn:
@@ -106,21 +127,10 @@ async def save_document_spreadsheet(
             active_tab_id,
             now,
             user_id,
+            source_sheet_id,
         )
 
-        return {
-            "id": str(row["id"]),
-            "documentId": row["document_id"],
-            "name": row["name"],
-            "sheetName": row["sheet_name"],
-            "totalRows": row["total_rows"],
-            "totalColumns": row["total_columns"],
-            "columns": json.loads(row["columns"]) if isinstance(row["columns"], str) else row["columns"],
-            "cells": json.loads(row["cells"]) if isinstance(row["cells"], str) else row["cells"],
-            "tabs": json.loads(row["tabs"]) if isinstance(row["tabs"], str) else (row["tabs"] or []),
-            "activeTabId": row["active_tab_id"] if "active_tab_id" in row else None,
-            "updatedAt": row["updated_at"].isoformat() if row["updated_at"] else None,
-        }
+        return _row_to_spreadsheet(row)
 
 
 async def update_spreadsheet_cell(

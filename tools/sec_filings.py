@@ -25,6 +25,7 @@ from services.sec_filing_signature_service import (
     get_envelope,
 )
 from services.sec_filing_spreadsheet_service import (
+    delete_document_spreadsheet,
     get_document_spreadsheet,
     save_document_spreadsheet,
     update_spreadsheet_cell,
@@ -200,10 +201,16 @@ async def delete_mobile_signature_envelope(
 
 @router.get("/documents/{document_id}/spreadsheet")
 async def get_attached_spreadsheet_endpoint(document_id: str):
+    # `spreadsheet` is null when no workbook is linked, so callers can tell
+    # "not linked" apart from an empty sheet.
     sheet = await get_document_spreadsheet(document_id)
-    if not sheet:
-        return {"documentId": document_id, "name": "Spreadsheet", "sheetName": "Sheet1", "totalRows": 20, "totalColumns": 10, "columns": [], "cells": {}}
-    return sheet
+    return {"documentId": document_id, "spreadsheet": sheet}
+
+
+@router.delete("/documents/{document_id}/spreadsheet")
+async def delete_attached_spreadsheet_endpoint(document_id: str):
+    deleted = await delete_document_spreadsheet(document_id)
+    return {"documentId": document_id, "deleted": deleted}
 
 
 @router.put("/documents/{document_id}/spreadsheet")

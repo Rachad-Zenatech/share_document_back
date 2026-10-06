@@ -111,16 +111,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS sec_attached_spreadsheets_doc_idx
     -- Multi-tab support for attached spreadsheets
     ALTER TABLE sec_attached_spreadsheets ADD COLUMN IF NOT EXISTS tabs JSONB NOT NULL DEFAULT '[]'::jsonb;
     ALTER TABLE sec_attached_spreadsheets ADD COLUMN IF NOT EXISTS active_tab_id VARCHAR;
+    -- Spreadsheet Hub workbook id, so a linked sheet maps back to its frontend registry entry
+    ALTER TABLE sec_attached_spreadsheets ADD COLUMN IF NOT EXISTS source_sheet_id VARCHAR;
 
 
 """
 
 
+_schema_ensured = False
+_schema_lock = asyncio.Lock()
+
+
 async def ensure_schema() -> None:
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-        await conn.execute(DDL)
-    print("SEC filing template schema ensured.")
+    global _schema_ensured
+    if _schema_ensured:
+        return
+    async with _schema_lock:
+        if _schema_ensured:
+            return
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute(DDL)
+        _schema_ensured = True
+        print("SEC filing template schema ensured.")
 
 
 if __name__ == "__main__":
