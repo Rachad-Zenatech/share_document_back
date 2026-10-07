@@ -1,4 +1,4 @@
-﻿# Collaborative Document & SEC Filings Backend (`share_document_back`)
+# Collaborative Document & SEC Filings Backend (`share_document_back`)
 
 Enterprise collaborative document authoring, SEC regulatory filing generator, spreadsheet integration hub, and mobile cryptographic signature backend for ZenaTech. Built with **FastAPI**, **PostgreSQL** (`asyncpg`), **Alembic**, **Google Gemini AI**, **Microsoft Graph API**, and **Server-Sent Events (SSE)**.
 
@@ -93,30 +93,30 @@ flowchart TD
 
 ```text
 share_document_back/
-├── alembic/                    # Database migration scripts and versions
-├── models/                     # Pydantic v2 domain schemas
-│   ├── sec_filing_model.py     # Filing, block, proposal, and signature models
-│   ├── rbac_model.py           # User and role permission definitions
-│   └── notification_model.py   # SSE event payloads
-├── postgresql_db/              # Database connection pool & table setup
-│   ├── database.py             # asyncpg connection pooling
-│   └── sec_filing_schema.py    # PostgreSQL DDL statements
-├── services/                   # Business logic implementations
-│   ├── sec_filing_template_service.py   # Document rendering and block tree
-│   ├── sec_filing_spreadsheet_service.py# Dynamic spreadsheet engine
-│   ├── sec_filing_signature_service.py  # QR codes and mobile signing
-│   ├── gemini_service.py       # AI generation and review workflows
-│   ├── graph_service.py        # Microsoft Graph sync service
-│   ├── auth_service.py         # Session cookies & Entra ID OAuth
-│   └── rbac_service.py         # Permission checking
-├── tools/                      # FastAPI endpoint routers
-│   ├── sec_filings.py          # /api/sec-filings endpoints
-│   ├── auth_router.py          # Authentication routes
-│   ├── graph_router.py         # Microsoft Graph endpoints
-│   └── notification_router.py  # SSE stream endpoint
-├── server.py                   # Application entry point
-├── requirements.txt
-└── run_server.sh
++-- alembic/                    # Database migration scripts and versions
++-- models/                     # Pydantic v2 domain schemas
+�   +-- sec_filing_model.py     # Filing, block, proposal, and signature models
+�   +-- rbac_model.py           # User and role permission definitions
+�   +-- notification_model.py   # SSE event payloads
++-- postgresql_db/              # Database connection pool & table setup
+�   +-- database.py             # asyncpg connection pooling
+�   +-- sec_filing_schema.py    # PostgreSQL DDL statements
++-- services/                   # Business logic implementations
+�   +-- sec_filing_template_service.py   # Document rendering and block tree
+�   +-- sec_filing_spreadsheet_service.py# Dynamic spreadsheet engine
+�   +-- sec_filing_signature_service.py  # QR codes and mobile signing
+�   +-- gemini_service.py       # AI generation and review workflows
+�   +-- graph_service.py        # Microsoft Graph sync service
+�   +-- auth_service.py         # Session cookies & Entra ID OAuth
+�   +-- rbac_service.py         # Permission checking
++-- tools/                      # FastAPI endpoint routers
+�   +-- sec_filings.py          # /api/sec-filings endpoints
+�   +-- auth_router.py          # Authentication routes
+�   +-- graph_router.py         # Microsoft Graph endpoints
+�   +-- notification_router.py  # SSE stream endpoint
++-- server.py                   # Application entry point
++-- requirements.txt
++-- run_server.sh
 ```
 
 ---
@@ -158,7 +158,7 @@ pip install -r requirements.txt
 ```env
 PORT=8006
 FRONTEND_URL=http://localhost:5176
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/share_document_dev
+DATABASE_URL=postgresql://postgres:postgres@localhost:3004/zenatech_share_document
 DATABASE_SSL=false
 SESSION_SECRET=your-32-character-session-secret-key
 GEMINI_API_KEY=your-gemini-api-key
@@ -176,3 +176,88 @@ S3_BUCKET_NAME=zenatech-document-filings
 uvicorn server:app --host 0.0.0.0 --port 8006 --reload
 ```
 API Documentation: `http://localhost:8006/docs`.
+
+
+## Local Database (Docker), DataGrip & Migrations
+
+Each project in the ZenaTech ecosystem runs an isolated local PostgreSQL container mapped to a dedicated 3000-series host port to prevent port collisions.
+
+### 1. Local Database Configuration
+* **Container Name**: `share_document_db_local`
+* **Host Port**: `localhost:3004` (mapped to internal PostgreSQL 5432)
+* **Database Name**: `zenatech_share_document`
+* **User / Password**: `postgres` / `postgres`
+* **Connection String**: `postgresql://postgres:postgres@localhost:3004/zenatech_share_document`
+
+### 2. Managing the Local Database
+```bash
+# Start local database container
+docker compose up -d db
+
+# Stop local database container
+docker compose down
+```
+### 3. Connecting in DataGrip
+1. Create a new **PostgreSQL** Data Source in DataGrip.
+2. Settings:
+   * **Host**: `localhost`
+   * **Port**: `3004`
+   * **Database**: `zenatech_share_document`
+   * **User**: `postgres`
+   * **Password**: `postgres`
+3. Click **Test Connection** and apply.
+
+### 4. Syncing Latest Live Data from AWS RDS (Optional)
+To pull a copy of real live records from AWS RDS into your local Docker DB for realistic development:
+```powershell
+.\scripts\pull_prod_to_local.ps1
+```
+* Safely downloads an RDS snapshot and restores it into `localhost:3004`.
+* Read-only pull: live AWS RDS remains untouched and safe.
+
+### 5. Creating Schema Changes & Migrations (PR Workflow)
+When making table or column changes on a new branch:
+
+1. **Create and Switch to Your New Feature Branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+   *(The Git `post-checkout` hook in `.git/hooks/post-checkout` automatically triggers to ensure your local database is synced and ready).*
+
+2. **Sync Live Data into Local DataGrip (Optional / Recommended)**:
+   ```powershell
+   .\scripts\pull_prod_to_local.ps1
+   ```
+   *(Safely pulls real current rows into your local Docker DB on port 3004 so you can build and test queries with actual data).*
+
+3. **Update Code Schema**:
+   Edit `postgresql_db/schema_metadata.py` to add or modify columns/tables.
+
+4. **Auto-Generate Migration Diff**:
+   ```bash
+   alembic revision --autogenerate -m "describe changes"
+   ```
+   Alembic inspects your local database and writes a versioned migration in `alembic/versions/` containing **only the differences**.
+
+5. **Apply & Test Locally**:
+   ```bash
+   alembic upgrade head
+   ```
+   Verify your changes and tables in DataGrip on `127.0.0.1:3004` with your test data.
+
+6. **Submit in PR**:
+   Commit and push:
+   * `postgresql_db/schema_metadata.py`
+   * `alembic/versions/<revision_id>_*.py`
+   *(Local test data stays on your machine; only the table structure diff is merged to production!)*
+
+### 6. Disposable Database Reset
+To tear down and recreate your local container from scratch to match the current branch:
+```powershell
+.\scripts\reset_local_db.ps1
+```
+* A Git `post-checkout` hook is installed in `.git/hooks/post-checkout` to trigger this automatically on branch switches.
+* Built-in safety guards immediately block resets if `DATABASE_URL` points to a remote AWS RDS host.
+
+
+
