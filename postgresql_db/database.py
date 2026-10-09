@@ -1,18 +1,17 @@
 import os
 import asyncio
 import logging
-# Optional dotenv import for loading .env during development
+from contextlib import asynccontextmanager
+import asyncpg
+
+# Optional dotenv import for loading .env and local overrides during development
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    _root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    load_dotenv(os.path.join(_root_dir, ".env"))
+    load_dotenv(os.path.join(_root_dir, ".env.local"), override=True)
 except ImportError:
     pass
-import asyncpg
-from contextlib import asynccontextmanager
-
-# load .env file to populate environment variables
-load_dotenv()
-
 # Global reference to the connection pool
 _pool: asyncpg.Pool | None = None
 logger = logging.getLogger(__name__)
