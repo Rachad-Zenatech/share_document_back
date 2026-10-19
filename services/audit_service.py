@@ -48,7 +48,7 @@ async def get_audit_logs(
                u.department as actor_department,
                u.job_title as actor_job_title,
                CASE
-                   WHEN al.entity_type = 'PurchaseRequest' THEN (SELECT product_name FROM tasks WHERE CAST(id AS TEXT) = al.entity_id LIMIT 1)
+                   WHEN al.entity_type = 'SecFinancialTableTemplate' THEN (SELECT name FROM sec_financial_table_templates WHERE CAST(id AS TEXT) = al.entity_id LIMIT 1)
                    WHEN al.entity_type = 'User' THEN (SELECT full_name FROM users WHERE CAST(id AS TEXT) = al.entity_id LIMIT 1)
                    WHEN al.entity_type = 'Role' THEN (SELECT name FROM roles WHERE CAST(id AS TEXT) = al.entity_id LIMIT 1)
                    ELSE NULL
@@ -111,8 +111,8 @@ async def get_audit_logs(
                 OR al.entity_id ILIKE ${idx}
                 OR u.full_name ILIKE ${idx}
                 OR u.email ILIKE ${idx}
-                OR (al.entity_type = 'PurchaseRequest' AND EXISTS (
-                    SELECT 1 FROM tasks WHERE CAST(id AS TEXT) = al.entity_id AND product_name ILIKE ${idx}
+                OR (al.entity_type = 'SecFinancialTableTemplate' AND EXISTS (
+                    SELECT 1 FROM sec_financial_table_templates WHERE CAST(id AS TEXT) = al.entity_id AND name ILIKE ${idx}
                 ))
             )"""
             query += clause

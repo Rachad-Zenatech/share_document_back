@@ -22,7 +22,7 @@ async def setup():
         """)
 
         print("Seeding REQUESTER and PENDING_USER roles...")
-        # REQUESTER: assignable by an admin, grants Purchase Request creation.
+        # REQUESTER: assignable by an admin, grants standard document creation and viewing permissions.
         # PENDING_USER: default role for brand-new SSO identities — registration
         # stays admin-gated; an admin activates the account and assigns a real
         # role (typically REQUESTER) via the existing Users/Roles admin page.

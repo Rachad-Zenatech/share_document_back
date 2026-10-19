@@ -112,11 +112,33 @@ async def lifespan(app: FastAPI):
             extra={"event": "graph_sync_disabled"},
         )
 
+    # 4. Initialize Event-Driven MQTT Service Presence & Bus
+    from services import mqtt_presence as mqtt_module
+    from services.mqtt_presence import MqttServicePresence
+    presence_instance = MqttServicePresence(
+        service_name=os.getenv("SERVICE_NAME", "share-document"),
+        instance_id=os.getenv("SERVICE_INSTANCE_ID", "share-document-01"),
+    )
+    mqtt_module.share_document_presence = presence_instance
+    await presence_instance.start()
+
+    # 5. Initialize RabbitMQ Manager (Cross-Service Asynchronous Messaging)
+    from services.rabbitmq_service import rabbitmq_manager
+    await rabbitmq_manager.connect()
+
     logger.info("Application startup complete", extra={"event": "application_started"})
     try:
         yield
     finally:
         logger.info("Application shutdown beginning", extra={"event": "application_stopping"})
+        try:
+            await rabbitmq_manager.close()
+        except Exception as rmq_err:
+            logger.warning(f"Error closing RabbitMQ manager: {rmq_err}")
+        try:
+            await presence_instance.stop()
+        except Exception as mqtt_err:
+            logger.warning(f"Error stopping MQTT presence: {mqtt_err}")
         for task in background_tasks:
             task.cancel()
         await asyncio.gather(*background_tasks, return_exceptions=True)
@@ -148,7 +170,7 @@ app = FastAPI(
 )
 
 # MCP server setup
-mcp = FastMCP("Admin Portal MCP Server")
+mcp = FastMCP("Share Document Portal MCP Server")
 register_mcp_tools(mcp)
 
 
@@ -196,7 +218,7 @@ async def ai_chat(req: ChatRequest, user_id: UUID = Depends(get_current_user_id)
 # --- Basic Endpoints ---
 @app.get("/")
 async def root():
-    return {"status": "running", "service": "Admin Portal Backend Template"}
+    return {"status": "running", "service": "Share Document Portal Backend"}
 
 @app.get("/health/live", include_in_schema=False)
 async def health_live():
@@ -259,9 +281,15 @@ app.include_router(sec_filings_router, prefix="/api", tags=["SEC Filings"])
 
 
 # --- Session Middleware ---
+_session_secret = os.environ.get("SESSION_SECRET")
+if not _session_secret:
+    if _is_prod:
+        raise RuntimeError("CRITICAL: SESSION_SECRET must be configured in production!")
+    _session_secret = "dev_ephemeral_session_secret_minimum_32_chars_ok!"
+
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.environ.get("SESSION_SECRET", "default_session_secret_key_needs_32_characters!"),
+    secret_key=_session_secret,
     same_site="lax",
     https_only=os.getenv("SESSION_COOKIE_SECURE", "true" if _is_prod else "false").lower() in ("true", "1", "yes"),
     max_age=3600,
@@ -382,6 +410,8 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    response.headers.setdefault("X-Permitted-Cross-Domain-Policies", "none")
+    response.headers.setdefault("X-XSS-Protection", "0")
     response.headers.setdefault("Content-Security-Policy", CONTENT_SECURITY_POLICY)
     if _HSTS_ENABLED:
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
