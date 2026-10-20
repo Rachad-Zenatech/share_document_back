@@ -279,6 +279,18 @@ jobs:
           for name in MICROSOFT_CLIENT_ID MICROSOFT_CLIENT_SECRET MICROSOFT_TENANT_ID MICROSOFT_REDIRECT_URI FRONTEND_URL; do
             [ -n "${!name}" ] || error "Missing required secret: $name"
           done
+          # Microsoft only accepts https redirect URIs outside localhost, and the
+          # secure session cookie set during login is dropped over plain http.
+          for name in MICROSOFT_REDIRECT_URI FRONTEND_URL; do
+            case "${!name}" in
+              ''|https://*) ;;
+              *) error "$name must be a full https:// URL (got ${!name})" ;;
+            esac
+          done
+          case "$MICROSOFT_REDIRECT_URI" in
+            ''|*/api/auth/microsoft/callback) ;;
+            *) error "MICROSOFT_REDIRECT_URI must end with /api/auth/microsoft/callback (got $MICROSOFT_REDIRECT_URI)" ;;
+          esac
 
           # Optional: the app starts without these but the related features are degraded.
           [ -n "$JWT_SECRET" ] || warn "JWT_SECRET not set; falling back to SESSION_SECRET for JWT signing"
