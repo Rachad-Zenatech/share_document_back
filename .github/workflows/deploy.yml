@@ -275,7 +275,18 @@ jobs:
           ALLOWED_EMAIL_DOMAINS: ${{ secrets.ALLOWED_EMAIL_DOMAINS || vars.ALLOWED_EMAIL_DOMAINS }}
           INITIAL_SUPER_ADMIN_EMAILS: ${{ secrets.INITIAL_SUPER_ADMIN_EMAILS || vars.INITIAL_SUPER_ADMIN_EMAILS }}
           GRAPH_BACKGROUND_SYNC_ENABLED: ${{ secrets.GRAPH_BACKGROUND_SYNC_ENABLED || vars.GRAPH_BACKGROUND_SYNC_ENABLED }}
-          SERVICE_NAME: ${{ secrets.SERVICE_NAME || 'sec-filing' }}
+          MQTT_HOST: ${{ secrets.MQTT_HOST || 'mqtt' }}
+          MQTT_PORT: ${{ secrets.MQTT_PORT || '1883' }}
+          MQTT_USERNAME: ${{ secrets.MQTT_USERNAME }}
+          MQTT_PASSWORD: ${{ secrets.MQTT_PASSWORD }}
+          MQTT_USE_TLS: ${{ secrets.MQTT_USE_TLS || 'false' }}
+          SERVICE_NAME: ${{ secrets.SERVICE_NAME || 'share-document' }}
+          SERVICE_INSTANCE_ID: ${{ secrets.SERVICE_INSTANCE_ID || 'share-document-01' }}
+          RABBITMQ_HOST: ${{ secrets.RABBITMQ_HOST || 'rabbitmq' }}
+          RABBITMQ_PORT: ${{ secrets.RABBITMQ_PORT || '5672' }}
+          RABBITMQ_DEFAULT_USER: ${{ secrets.RABBITMQ_DEFAULT_USER || secrets.RABBITMQ_USER }}
+          RABBITMQ_DEFAULT_PASS: ${{ secrets.RABBITMQ_DEFAULT_PASS || secrets.RABBITMQ_PASSWORD }}
+          RABBITMQ_URL: ${{ secrets.RABBITMQ_URL || 'amqp://guest:guest@host.docker.internal:5672/' }}
           PLAYWRIGHT_BROWSERS_PATH: ${{ secrets.PLAYWRIGHT_BROWSERS_PATH || '/ms-playwright' }}
           TESSERACT_CMD: ${{ secrets.TESSERACT_CMD || '/usr/bin/tesseract' }}
         run: |
@@ -330,7 +341,28 @@ jobs:
             if [ -n "$GRAPH_BACKGROUND_SYNC_ENABLED" ]; then
               printf 'GRAPH_BACKGROUND_SYNC_ENABLED=%s\n' "$GRAPH_BACKGROUND_SYNC_ENABLED"
             fi
+            printf 'MQTT_HOST=%s\n' "$MQTT_HOST"
+            printf 'MQTT_PORT=%s\n' "$MQTT_PORT"
+            printf 'MQTT_USERNAME=%s\n' "$MQTT_USERNAME"
+            printf 'MQTT_PASSWORD=%s\n' "$MQTT_PASSWORD"
+            printf 'MQTT_USE_TLS=%s\n' "$MQTT_USE_TLS"
             printf 'SERVICE_NAME=%s\n' "$SERVICE_NAME"
+            printf 'SERVICE_INSTANCE_ID=%s\n' "$SERVICE_INSTANCE_ID"
+            if [ -n "$RABBITMQ_HOST" ]; then
+              printf 'RABBITMQ_HOST=%s\n' "$RABBITMQ_HOST"
+            fi
+            if [ -n "$RABBITMQ_PORT" ]; then
+              printf 'RABBITMQ_PORT=%s\n' "$RABBITMQ_PORT"
+            fi
+            if [ -n "$RABBITMQ_DEFAULT_USER" ]; then
+              printf 'RABBITMQ_DEFAULT_USER=%s\n' "$RABBITMQ_DEFAULT_USER"
+            fi
+            if [ -n "$RABBITMQ_DEFAULT_PASS" ]; then
+              printf 'RABBITMQ_DEFAULT_PASS=%s\n' "$RABBITMQ_DEFAULT_PASS"
+            fi
+            if [ -n "$RABBITMQ_URL" ]; then
+              printf 'RABBITMQ_URL=%s\n' "$RABBITMQ_URL"
+            fi
             printf 'PLAYWRIGHT_BROWSERS_PATH=%s\n' "$PLAYWRIGHT_BROWSERS_PATH"
             printf 'TESSERACT_CMD=%s\n' "$TESSERACT_CMD"
             echo "DATA_PATH=/app/data"

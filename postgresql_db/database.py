@@ -1,23 +1,20 @@
 import os
 import asyncio
 import logging
-# Optional dotenv import for loading .env during development
+from contextlib import asynccontextmanager
+import asyncpg
+
+# Optional dotenv import for loading .env and local overrides during development
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    _root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    load_dotenv(os.path.join(_root_dir, ".env"))
+    load_dotenv(os.path.join(_root_dir, ".env.local"), override=True)
 except ImportError:
     pass
-import asyncpg
-from contextlib import asynccontextmanager
-
-# load .env file to populate environment variables
-load_dotenv()
-
 # Global reference to the connection pool
 _pool: asyncpg.Pool | None = None
 logger = logging.getLogger(__name__)
-
-ssl_mode = os.getenv("DATABASE_SSL", "false").lower()
 
 async def create_pool():
     """Creates the connection pool if it doesn't exist yet, then returns it."""
@@ -33,9 +30,18 @@ async def create_pool():
                 max_inactive_lifetime = float(os.getenv("DB_POOL_MAX_INACTIVE_LIFETIME", "300.0"))
                 cmd_timeout = float(os.getenv("DB_COMMAND_TIMEOUT", "120.0"))
 
+                ssl_env = os.getenv("DATABASE_SSL", "").lower().strip()
+                if ssl_env in ("false", "0", "no", "disable", "off"):
+                    ssl_mode = False
+                elif ssl_env in ("true", "1", "yes", "require"):
+                    ssl_mode = "require"
+                else:
+                    dsn = os.getenv("DATABASE_URL", "")
+                    ssl_mode = False if any(h in dsn for h in ("localhost", "127.0.0.1", "host.docker.internal")) else "require"
+
                 _pool = await asyncpg.create_pool(
                     dsn=os.environ["DATABASE_URL"],
-                    ssl="require" if ssl_mode in ("true", "require") else False,
+                    ssl=ssl_mode,
                     min_size=min_size,
                     max_size=max_size,
                     max_queries=max_queries,

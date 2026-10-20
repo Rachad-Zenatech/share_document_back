@@ -27,3 +27,7 @@ python-dotenv>=1.0.0
 # AI & MCP Integration
 google-genai>=2.8.0
 motor>=3.7.0
+
+# Messaging, Event Bus & Microservice Presence
+paho-mqtt>=2.1.0
+aio-pika>=9.5.4

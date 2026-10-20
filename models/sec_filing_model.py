@@ -258,6 +258,7 @@ class AttachedSpreadsheetPayload(BaseModel):
     cells: dict[str, Any] = {}
     tabs: list[dict[str, Any]] = []
     active_tab_id: str | None = Field(default=None, alias="activeTabId")
+    source_sheet_id: str | None = Field(default=None, alias="sourceSheetId")
     updated_at: datetime | None = Field(default=None, alias="updatedAt")
 
 
