@@ -27,16 +27,6 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            tesseract-ocr \
-            poppler-utils \
-            libpq-dev \
-            gcc \
-            curl
-
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
@@ -149,6 +139,18 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
+      - name: Validate database environment variables
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Missing required secret: DATABASE_URL"
+            exit 1
+          fi
+          case "$DATABASE_URL" in
+            postgres://*|postgresql://*) ;;
+            *) echo "::error::DATABASE_URL must start with postgresql:// or postgres://"; exit 1 ;;
+          esac
+          echo "[OK] DATABASE_URL is set."
+
       - name: Install migration dependencies
         run: |
           python -m pip install --upgrade pip
@@ -230,6 +232,71 @@ jobs:
       AWS_SECURITY_GROUP_ID: ${{ secrets.AWS_SECURITY_GROUP_ID || vars.AWS_SECURITY_GROUP_ID }}
 
     steps:
+      - name: Validate required environment variables
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          MICROSOFT_CLIENT_SECRET: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          MICROSOFT_TENANT_ID: ${{ secrets.MICROSOFT_TENANT_ID }}
+          MICROSOFT_REDIRECT_URI: ${{ secrets.MICROSOFT_REDIRECT_URI }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS || secrets.FRONTEND_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          errors=0
+          error() { echo "::error::$1"; errors=$((errors + 1)); }
+          warn() { echo "::warning::$1"; }
+
+          # Deployment target and database: the deploy cannot run without these.
+          for name in EC2_HOST EC2_SSH_KEY DATABASE_URL; do
+            [ -n "${!name}" ] || error "Missing required secret: $name"
+          done
+          if [ -n "$EC2_SSH_KEY" ] && ! printf '%s' "$EC2_SSH_KEY" | grep -q -- '-----BEGIN .*PRIVATE KEY-----'; then
+            error "EC2_SSH_KEY does not look like a private key (expected the full .pem contents)"
+          fi
+          case "$DATABASE_URL" in
+            ''|postgres://*|postgresql://*) ;;
+            *) error "DATABASE_URL must start with postgresql:// or postgres://" ;;
+          esac
+
+          # The app refuses to start in production without a session secret of
+          # at least 32 characters (JWT_SECRET falls back to SESSION_SECRET).
+          if [ -z "$SESSION_SECRET" ]; then
+            error "Missing required secret: SESSION_SECRET"
+          elif [ "${#SESSION_SECRET}" -lt 32 ]; then
+            error "SESSION_SECRET must be at least 32 characters"
+          fi
+          if [ -n "$JWT_SECRET" ] && [ "${#JWT_SECRET}" -lt 32 ]; then
+            error "JWT_SECRET must be at least 32 characters"
+          fi
+
+          # Microsoft sign-in and the frontend origin: without these nobody can log in.
+          for name in MICROSOFT_CLIENT_ID MICROSOFT_CLIENT_SECRET MICROSOFT_TENANT_ID MICROSOFT_REDIRECT_URI FRONTEND_URL; do
+            [ -n "${!name}" ] || error "Missing required secret: $name"
+          done
+
+          # Optional: the app starts without these but the related features are degraded.
+          [ -n "$JWT_SECRET" ] || warn "JWT_SECRET not set; falling back to SESSION_SECRET for JWT signing"
+          [ -n "$CORS_ALLOWED_ORIGINS" ] || warn "CORS_ALLOWED_ORIGINS/FRONTEND_URL not set; browsers will be blocked by CORS"
+          [ -n "$GEMINI_API_KEY" ] || warn "GEMINI_API_KEY not set; AI features will be disabled"
+          if [ -n "$AWS_ACCESS_KEY" ] && [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            warn "AWS access key is set without AWS_SECRET_ACCESS_KEY; security group SSH rule will not be managed"
+          fi
+          if [ -n "$AWS_ACCESS_KEY" ] && [ -z "$AWS_SECURITY_GROUP_ID" ]; then
+            warn "AWS_SECURITY_GROUP_ID not set; port 22 must already be open to GitHub runners"
+          fi
+
+          if [ "$errors" -gt 0 ]; then
+            echo "[FAIL] $errors required environment variable(s) missing or invalid. Add them to the Zenatech environment secrets."
+            exit 1
+          fi
+          echo "[OK] Required environment variables are present."
+
       - name: Get GitHub runner IP
         id: ip
         run: echo "ipv4=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
@@ -287,8 +354,6 @@ jobs:
           RABBITMQ_DEFAULT_USER: ${{ secrets.RABBITMQ_DEFAULT_USER || secrets.RABBITMQ_USER }}
           RABBITMQ_DEFAULT_PASS: ${{ secrets.RABBITMQ_DEFAULT_PASS || secrets.RABBITMQ_PASSWORD }}
           RABBITMQ_URL: ${{ secrets.RABBITMQ_URL || 'amqp://guest:guest@host.docker.internal:5672/' }}
-          PLAYWRIGHT_BROWSERS_PATH: ${{ secrets.PLAYWRIGHT_BROWSERS_PATH || '/ms-playwright' }}
-          TESSERACT_CMD: ${{ secrets.TESSERACT_CMD || '/usr/bin/tesseract' }}
         run: |
           install -m 600 /dev/null ec2-key.pem
           printf '%s\n' "$EC2_SSH_KEY" > ec2-key.pem
@@ -363,8 +428,6 @@ jobs:
             if [ -n "$RABBITMQ_URL" ]; then
               printf 'RABBITMQ_URL=%s\n' "$RABBITMQ_URL"
             fi
-            printf 'PLAYWRIGHT_BROWSERS_PATH=%s\n' "$PLAYWRIGHT_BROWSERS_PATH"
-            printf 'TESSERACT_CMD=%s\n' "$TESSERACT_CMD"
             echo "DATA_PATH=/app/data"
             echo "UPLOAD_FILES_DIR=/app/data/upload_files"
             echo "AUTH_COOKIE_SECURE=true"
