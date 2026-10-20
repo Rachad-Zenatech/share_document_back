@@ -1,0 +1,49 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: sec-filing-backend-api:latest
+    container_name: sec_filing_backend_api_prod
+
+    ports:
+      - "80:8000"
+      - "8000:8000"
+
+    volumes:
+      - ./data:/app/data
+
+    # Compose applies these in order and the last one wins, so .env.production
+    # is listed second: the deploy pipeline regenerates it every release, while
+    # .env is untracked and survives `git reset --hard`, so a stale copy left on
+    # the host must not override the config we just shipped.
+    env_file:
+      - path: .env
+        required: false
+      - path: .env.production
+        required: false
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    restart: unless-stopped
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

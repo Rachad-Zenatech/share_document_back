@@ -1,4 +1,4 @@
-﻿name: CI/CD Pipeline
+name: CI/CD Pipeline - Backend
 
 on:
   push:
@@ -8,6 +8,9 @@ on:
     branches:
       - main
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   lint-and-test:
@@ -28,6 +31,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
+            tesseract-ocr \
+            poppler-utils \
             libpq-dev \
             gcc \
             curl
@@ -40,7 +45,7 @@ jobs:
 
       - name: Check Python Syntax
         run: |
-          python -m py_compile server.py
+          python -m compileall -q .
 
       - name: Run Ruff Lint
         run: |
@@ -69,6 +74,324 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
-          tags: backend-api:latest
+          tags: sec-filing-backend-api:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  verify-migrations-and-diffs:
+    name: Verify Migrations & Schema Diffs
+    runs-on: ubuntu-latest
+    needs: [lint-and-test]
+    services:
+      postgres:
+        image: postgres:18.3-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: share_document
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install asyncpg psycopg2-binary alembic
+
+      - name: Initialize base schema and run migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/share_document
+          DATABASE_SSL: false
+        run: |
+          python -m postgresql_db.setup_pbac_schema
+          python -m postgresql_db.setup_graph_sync_schema
+          python -m postgresql_db.notifications_schema
+          python -m postgresql_db.sec_filing_schema
+          if ls alembic/versions/*.py >/dev/null 2>&1; then
+            alembic stamp head
+            alembic upgrade head
+          fi
+
+          echo "[*] Database schema verification complete!"
+
+  migrate-db:
+    name: Migrate & Verify Database
+    environment: Zenatech
+    needs: [lint-and-test, docker-build, verify-migrations-and-diffs]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_SSL: ${{ secrets.DATABASE_SSL || 'require' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install migration dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install alembic asyncpg SQLAlchemy python-dotenv
+
+      - name: Check database reachability and migrate
+        id: db_check
+        run: |
+          python -c "
+          import asyncio, os, sys
+          import asyncpg
+
+          async def main():
+              db_url = os.environ.get('DATABASE_URL', '')
+              ssl_env = os.environ.get('DATABASE_SSL', 'require').lower()
+              ssl_mode = 'require' if ssl_env in ('true', 'require', '1') else False
+              try:
+                  conn = await asyncio.wait_for(
+                      asyncpg.connect(dsn=db_url, ssl=ssl_mode), timeout=8
+                  )
+                  await conn.fetchval('SELECT 1')
+                  await conn.close()
+                  print('[OK] Database is directly reachable from GitHub Actions runner.')
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write('reachable=true\n')
+              except Exception as exc:
+                  print(f'[INFO] Database not directly reachable from GitHub runner ({exc!r}).')
+                  print('[INFO] Target database is private within AWS VPC. Migrations will execute on EC2 deployment host.')
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write('reachable=false\n')
+
+          asyncio.run(main())
+          "
+
+      - name: Run schema setup and Alembic migrations (if directly reachable)
+        if: steps.db_check.outputs.reachable == 'true'
+        run: |
+          python -m postgresql_db.setup_pbac_schema
+          python -m postgresql_db.setup_graph_sync_schema
+          python -m postgresql_db.notifications_schema
+          python -m postgresql_db.sec_filing_schema
+          if ls alembic/versions/*.py >/dev/null 2>&1; then
+            alembic upgrade head
+          fi
+
+      - name: Verify database is healthy after migrating (if directly reachable)
+        if: steps.db_check.outputs.reachable == 'true'
+        run: |
+          python -c "
+          import asyncio, os, sys
+          import asyncpg
+
+          async def main():
+              ssl_env = os.environ.get('DATABASE_SSL', 'require').lower()
+              ssl_mode = 'require' if ssl_env in ('true', 'require', '1') else False
+              try:
+                  conn = await asyncio.wait_for(
+                      asyncpg.connect(dsn=os.environ['DATABASE_URL'], ssl=ssl_mode), timeout=10
+                  )
+                  await conn.fetchval('SELECT 1')
+                  await conn.close()
+                  print('[OK] Database healthy after migration.')
+              except Exception as exc:
+                  print(f'Post-migration database check failed, aborting deploy: {exc!r}', file=sys.stderr)
+                  sys.exit(1)
+
+          asyncio.run(main())
+          "
+
+  deploy-ec2:
+    name: Deploy to EC2
+    environment: Zenatech
+    needs: migrate-db
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY || secrets.AWS_ACCESS_KEY_ID || secrets.ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY || secrets.SECRET_ACCESS_KEY }}
+      AWS_SECURITY_GROUP_ID: ${{ secrets.AWS_SECURITY_GROUP_ID || vars.AWS_SECURITY_GROUP_ID }}
+
+    steps:
+      - name: Get GitHub runner IP
+        id: ip
+        run: echo "ipv4=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials
+        if: env.AWS_ACCESS_KEY != '' && env.AWS_SECRET_ACCESS_KEY != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || vars.AWS_REGION || 'ca-central-1' }}
+
+      - name: Authorize Security Group SSH
+        if: env.AWS_ACCESS_KEY != '' && env.AWS_SECURITY_GROUP_ID != ''
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ env.AWS_SECURITY_GROUP_ID }} \
+            --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32 || true
+
+      - name: Deploy backend to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER || 'ec2-user' }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_SSL: ${{ secrets.DATABASE_SSL || 'require' }}
+          DB_POOL_MIN_SIZE: ${{ vars.DB_POOL_MIN_SIZE || '5' }}
+          DB_POOL_MAX_SIZE: ${{ vars.DB_POOL_MAX_SIZE || '20' }}
+          DB_POOL_MAX_QUERIES: ${{ vars.DB_POOL_MAX_QUERIES || '50000' }}
+          DB_POOL_MAX_INACTIVE_LIFETIME: ${{ vars.DB_POOL_MAX_INACTIVE_LIFETIME || '300.0' }}
+          DB_COMMAND_TIMEOUT: ${{ vars.DB_COMMAND_TIMEOUT || '120.0' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_AVAILABLE_MODELS: ${{ secrets.GEMINI_AVAILABLE_MODELS || vars.GEMINI_AVAILABLE_MODELS }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_ISSUER: ${{ secrets.JWT_ISSUER || vars.JWT_ISSUER }}
+          MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          MICROSOFT_CLIENT_SECRET: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          MICROSOFT_TENANT_ID: ${{ secrets.MICROSOFT_TENANT_ID }}
+          MICROSOFT_REDIRECT_URI: ${{ secrets.MICROSOFT_REDIRECT_URI }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS || secrets.FRONTEND_URL }}
+          ALLOWED_EMAIL_DOMAINS: ${{ secrets.ALLOWED_EMAIL_DOMAINS || vars.ALLOWED_EMAIL_DOMAINS }}
+          INITIAL_SUPER_ADMIN_EMAILS: ${{ secrets.INITIAL_SUPER_ADMIN_EMAILS || vars.INITIAL_SUPER_ADMIN_EMAILS }}
+          GRAPH_BACKGROUND_SYNC_ENABLED: ${{ secrets.GRAPH_BACKGROUND_SYNC_ENABLED || vars.GRAPH_BACKGROUND_SYNC_ENABLED }}
+          SERVICE_NAME: ${{ secrets.SERVICE_NAME || 'sec-filing' }}
+          PLAYWRIGHT_BROWSERS_PATH: ${{ secrets.PLAYWRIGHT_BROWSERS_PATH || '/ms-playwright' }}
+          TESSERACT_CMD: ${{ secrets.TESSERACT_CMD || '/usr/bin/tesseract' }}
+        run: |
+          install -m 600 /dev/null ec2-key.pem
+          printf '%s\n' "$EC2_SSH_KEY" > ec2-key.pem
+
+          ssh -o StrictHostKeyChecking=no -i ec2-key.pem "$EC2_USER@$EC2_HOST" "
+            if [ ! -d ~/share_document_back/.git ]; then
+              git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git ~/share_document_back
+            else
+              sudo chown -R "$EC2_USER:$EC2_USER" ~/share_document_back 2>/dev/null || true
+              cd ~/share_document_back && \
+              git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git && \
+              git fetch origin main && \
+              git reset --hard origin/main
+            fi
+          "
+
+          {
+            echo "APP_ENV=production"
+            echo "LOG_LEVEL=INFO"
+            printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
+            printf 'DATABASE_SSL=%s\n' "$DATABASE_SSL"
+            printf 'DB_POOL_MIN_SIZE=%s\n' "$DB_POOL_MIN_SIZE"
+            printf 'DB_POOL_MAX_SIZE=%s\n' "$DB_POOL_MAX_SIZE"
+            printf 'DB_POOL_MAX_QUERIES=%s\n' "$DB_POOL_MAX_QUERIES"
+            printf 'DB_POOL_MAX_INACTIVE_LIFETIME=%s\n' "$DB_POOL_MAX_INACTIVE_LIFETIME"
+            printf 'DB_COMMAND_TIMEOUT=%s\n' "$DB_COMMAND_TIMEOUT"
+            printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY"
+            if [ -n "$GEMINI_AVAILABLE_MODELS" ]; then
+              printf 'GEMINI_AVAILABLE_MODELS=%s\n' "$GEMINI_AVAILABLE_MODELS"
+            fi
+            printf 'SESSION_SECRET=%s\n' "$SESSION_SECRET"
+            if [ -n "$JWT_SECRET" ]; then
+              printf 'JWT_SECRET=%s\n' "$JWT_SECRET"
+            fi
+            if [ -n "$JWT_ISSUER" ]; then
+              printf 'JWT_ISSUER=%s\n' "$JWT_ISSUER"
+            fi
+            printf 'MICROSOFT_CLIENT_ID=%s\n' "$MICROSOFT_CLIENT_ID"
+            printf 'MICROSOFT_CLIENT_SECRET=%s\n' "$MICROSOFT_CLIENT_SECRET"
+            printf 'MICROSOFT_TENANT_ID=%s\n' "$MICROSOFT_TENANT_ID"
+            printf 'MICROSOFT_REDIRECT_URI=%s\n' "$MICROSOFT_REDIRECT_URI"
+            printf 'FRONTEND_URL=%s\n' "$FRONTEND_URL"
+            printf 'CORS_ALLOWED_ORIGINS=%s\n' "$CORS_ALLOWED_ORIGINS"
+            if [ -n "$ALLOWED_EMAIL_DOMAINS" ]; then
+              printf 'ALLOWED_EMAIL_DOMAINS=%s\n' "$ALLOWED_EMAIL_DOMAINS"
+            fi
+            if [ -n "$INITIAL_SUPER_ADMIN_EMAILS" ]; then
+              printf 'INITIAL_SUPER_ADMIN_EMAILS=%s\n' "$INITIAL_SUPER_ADMIN_EMAILS"
+            fi
+            if [ -n "$GRAPH_BACKGROUND_SYNC_ENABLED" ]; then
+              printf 'GRAPH_BACKGROUND_SYNC_ENABLED=%s\n' "$GRAPH_BACKGROUND_SYNC_ENABLED"
+            fi
+            printf 'SERVICE_NAME=%s\n' "$SERVICE_NAME"
+            printf 'PLAYWRIGHT_BROWSERS_PATH=%s\n' "$PLAYWRIGHT_BROWSERS_PATH"
+            printf 'TESSERACT_CMD=%s\n' "$TESSERACT_CMD"
+            echo "DATA_PATH=/app/data"
+            echo "UPLOAD_FILES_DIR=/app/data/upload_files"
+            echo "AUTH_COOKIE_SECURE=true"
+            echo "SESSION_COOKIE_SECURE=true"
+          } > .env.production
+
+          scp -o StrictHostKeyChecking=no -i ec2-key.pem .env.production "$EC2_USER@$EC2_HOST":~/share_document_back/.env.production
+
+          ssh -o StrictHostKeyChecking=no -i ec2-key.pem "$EC2_USER@$EC2_HOST" "
+            cd ~/share_document_back
+            sudo mkdir -p data data/upload_files
+            sudo chown -R 10001:10001 data 2>/dev/null || sudo chmod -R 777 data
+
+            # Ensure EC2 IMDSv2 hop limit is 2 so Docker container can access IAM role
+            TOKEN=\$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 60' 2>/dev/null || true)
+            if [ -n \"\$TOKEN\" ]; then
+              INSTANCE_ID=\$(curl -s -H \"X-aws-ec2-metadata-token: \$TOKEN\" http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || true)
+              if [ -n \"\$INSTANCE_ID\" ]; then
+                aws ec2 modify-instance-metadata-options --instance-id \"\$INSTANCE_ID\" --http-put-response-hop-limit 2 --http-endpoint enabled 2>/dev/null || true
+              fi
+            fi
+
+            # Each deploy leaves the previous image dangling plus build cache; prune
+            # before building so the disk does not fill up and fail the image export.
+            echo 'Disk before cleanup:'; df -h /
+            sudo docker container prune -f || true
+            sudo docker image prune -f || true
+            sudo docker builder prune -f --filter until=24h || true
+            echo 'Disk after cleanup:'; df -h /
+
+            sudo docker build -t sec-filing-backend-api:latest .
+            echo '[*] Applying database schema and migrations on EC2...'
+            sudo docker run --rm --env-file .env.production sec-filing-backend-api:latest sh -c '
+              set -e
+              python -m postgresql_db.setup_pbac_schema
+              python -m postgresql_db.setup_graph_sync_schema
+              python -m postgresql_db.notifications_schema
+              python -m postgresql_db.sec_filing_schema
+              if ls alembic/versions/*.py >/dev/null 2>&1; then alembic upgrade head; fi
+            '
+            if docker compose version &>/dev/null; then
+              sudo docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            elif command -v docker-compose &>/dev/null; then
+              sudo docker-compose -f docker-compose.prod.yml up -d --remove-orphans
+            else
+              sudo curl -L \"https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)\" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+              sudo /usr/local/bin/docker-compose -f docker-compose.prod.yml up -d --remove-orphans
+            fi
+
+            # Remove the image this deploy just replaced.
+            sudo docker image prune -f || true
+            echo 'Disk after deploy:'; df -h /
+          "
+          rm -f ec2-key.pem .env.production
+
+      - name: Revoke Security Group SSH
+        if: always() && env.AWS_ACCESS_KEY != '' && env.AWS_SECURITY_GROUP_ID != ''
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ env.AWS_SECURITY_GROUP_ID }} \
+            --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32 || true
