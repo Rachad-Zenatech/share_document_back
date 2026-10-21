@@ -9,18 +9,10 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
 from typing import Any
 from uuid import UUID
 
 from postgresql_db.database import fetch_all, fetch_one, get_pool
-
-SEED_FILE = (
-    Path(__file__).resolve().parents[1]
-    / "postgresql_db"
-    / "seeds"
-    / "sec_financial_table_templates.json"
-)
 
 _COLUMNS = """
     id, template_key, name, description, badge, icon, color, sort_order,
@@ -204,86 +196,11 @@ async def delete_table_template(template_identifier: str | UUID, user_id: UUID) 
     return {"id": str(existing["id"]), "deleted": True}
 
 
-def _load_seed() -> list[dict[str, Any]]:
-    if not SEED_FILE.exists():
-        return []
-    with SEED_FILE.open("r", encoding="utf-8") as handle:
-        data = json.load(handle)
-    return data if isinstance(data, list) else []
+async def bootstrap_sec_filing_table_templates() -> None:
+    """Ensure the table exists.
 
-
-async def seed_builtin_table_templates(overwrite: bool = False) -> dict[str, int]:
-    """Insert the built-in templates.
-
-    Existing rows are left alone unless `overwrite` is set, so a user's edit to a
-    built-in template is not silently reverted by a redeploy.
-    """
-    seed = _load_seed()
-    inserted = updated = skipped = 0
-
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            for entry in seed:
-                key = entry.get("template_key")
-                if not key or not entry.get("block"):
-                    skipped += 1
-                    continue
-
-                existing = await conn.fetchval(
-                    "SELECT id FROM sec_financial_table_templates WHERE template_key = $1 AND deleted_at IS NULL",
-                    key,
-                )
-                if existing and not overwrite:
-                    skipped += 1
-                    continue
-
-                if existing:
-                    await conn.execute(
-                        """
-                        UPDATE sec_financial_table_templates
-                        SET name = $2, description = $3, badge = $4, icon = $5, color = $6,
-                            sort_order = $7, block = $8::jsonb, is_builtin = true, updated_at = now()
-                        WHERE id = $1
-                        """,
-                        existing,
-                        entry["name"],
-                        entry.get("description"),
-                        entry.get("badge"),
-                        entry.get("icon") or "table",
-                        entry.get("color"),
-                        entry.get("sort_order") or 0,
-                        json.dumps(entry["block"]),
-                    )
-                    updated += 1
-                else:
-                    await conn.execute(
-                        """
-                        INSERT INTO sec_financial_table_templates
-                            (template_key, name, description, badge, icon, color, sort_order, is_builtin, block)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8::jsonb)
-                        """,
-                        key,
-                        entry["name"],
-                        entry.get("description"),
-                        entry.get("badge"),
-                        entry.get("icon") or "table",
-                        entry.get("color"),
-                        entry.get("sort_order") or 0,
-                        json.dumps(entry["block"]),
-                    )
-                    inserted += 1
-
-    return {"inserted": inserted, "updated": updated, "skipped": skipped}
-
-
-async def bootstrap_sec_filing_table_templates() -> dict[str, int]:
-    """Ensure the table exists and the built-in templates are present.
-
-    Runs on application startup. Existing rows are never overwritten, so an edit
-    a user made to a built-in template survives a redeploy.
+    Runs on application startup.
     """
     from postgresql_db.sec_filing_schema import ensure_schema
 
     await ensure_schema()
-    return await seed_builtin_table_templates(overwrite=False)

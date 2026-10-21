@@ -186,13 +186,6 @@ class FinancialTableTemplateList(BaseModel):
     total: int
 
 
-class FinancialTableTemplateSeedResult(BaseModel):
-    model_config = ConfigDict(serialize_by_alias=True)
-
-    inserted: int
-    updated: int
-    skipped: int
-
 
 class MobileSignatureDispatchRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)

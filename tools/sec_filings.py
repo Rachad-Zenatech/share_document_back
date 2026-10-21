@@ -9,7 +9,6 @@ from models.sec_filing_model import (
     FinancialTableTemplate,
     FinancialTableTemplateCreate,
     FinancialTableTemplateList,
-    FinancialTableTemplateSeedResult,
     FinancialTableTemplateUpdate,
     MobileSignatureCompleteRequest,
     MobileSignatureDispatchRequest,
@@ -35,7 +34,6 @@ from services.sec_filing_template_service import (
     delete_table_template,
     get_table_template,
     list_table_templates,
-    seed_builtin_table_templates,
     update_table_template,
 )
 
@@ -73,16 +71,6 @@ async def create_financial_table_template(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-
-@router.post("/table-templates/seed", response_model=FinancialTableTemplateSeedResult)
-async def seed_financial_table_templates(
-    overwrite: bool = Query(
-        default=False,
-        description="Overwrite built-in templates that already exist, discarding local edits to them.",
-    ),
-    user_id: UUID = Depends(require_permission("SEC_FILINGS_CREATE")),
-):
-    return await seed_builtin_table_templates(overwrite=overwrite)
 
 
 @router.get(

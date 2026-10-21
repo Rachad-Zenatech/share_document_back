@@ -355,27 +355,6 @@ async def setup():
                 SELECT $1, id FROM permission_groups
                 ON CONFLICT DO NOTHING
             """, super_admin_role_id)
-
-        # Seed Super Admin Users
-        admin_emails_env = os.getenv("INITIAL_SUPER_ADMIN_EMAILS", "admin@example.com")
-        admin_emails = [e.strip().lower() for e in admin_emails_env.split(",") if e.strip()]
-
-        for email in admin_emails:
-            full_name = email.split('@')[0].replace('.', ' ').title()
-            user_id = await conn.fetchval("""
-                INSERT INTO users (email, full_name, is_active, is_super_admin)
-                VALUES ($1, $2, true, true)
-                ON CONFLICT (email) DO UPDATE SET is_super_admin = true, is_active = true
-                RETURNING id
-            """, email, full_name)
-
-            if super_admin_role_id and user_id:
-                await conn.execute("""
-                    INSERT INTO user_roles (user_id, role_id, is_active)
-                    VALUES ($1, $2, true)
-                    ON CONFLICT (user_id, role_id) DO UPDATE SET is_active = true
-                """, user_id, super_admin_role_id)
-
         print("RBAC and template schema initialization complete!")
 
     await close_pool()
