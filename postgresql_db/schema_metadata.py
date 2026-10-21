@@ -31,8 +31,10 @@ users = sa.Table(
     sa.Column("deleted_at", postgresql.TIMESTAMP(timezone=True)),
     sa.Column("deleted_by", sa.UUID()),
     sa.Column("created_at", postgresql.TIMESTAMP(timezone=True), server_default=sa.text("now()")),
+    sa.Column("created_by", sa.UUID()),
     sa.Column("updated_at", postgresql.TIMESTAMP(timezone=True), server_default=sa.text("now()")),
     sa.Column("updated_by", sa.UUID()),
+    sa.Column("force_password_change", sa.BOOLEAN(), server_default=sa.text("false")),
     sa.UniqueConstraint("email", name="users_email_key"),
     sa.UniqueConstraint("entra_oid", name="users_entra_oid_key"),
 )

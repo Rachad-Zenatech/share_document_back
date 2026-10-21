@@ -129,9 +129,10 @@ async def create_user(user: UserCreate, actor_id: UUID = None):
                     # Reactivate and update soft-deleted user
                     sql = """
                         UPDATE users
-                        SET email = $1, full_name = $2, is_active = $3, is_super_admin = $4,
-                            deleted_at = NULL, deleted_by = NULL, updated_at = now(), updated_by = $5
-                        WHERE id = $6
+                        SET email = $1, full_name = $2, department = COALESCE($3, department),
+                            job_title = COALESCE($4, job_title), is_active = $5, is_super_admin = $6,
+                            deleted_at = NULL, deleted_by = NULL, updated_at = now(), updated_by = $7
+                        WHERE id = $8
                         RETURNING id, email, full_name, is_active, is_super_admin,
                                   last_login_at, created_at, updated_at
                     """
@@ -139,22 +140,35 @@ async def create_user(user: UserCreate, actor_id: UUID = None):
                         sql,
                         clean_email,
                         user.full_name,
+                        user.department,
+                        user.job_title,
                         user.is_active,
                         user.is_super_admin,
                         actor_id,
                         existing["id"],
                     )
                     user_dict = dict(row)
+
+                    if user.is_super_admin:
+                        super_role = await conn.fetchrow("SELECT id FROM roles WHERE code = 'SUPER_ADMIN' AND deleted_at IS NULL")
+                        if super_role:
+                            await conn.execute("""
+                                INSERT INTO user_roles (user_id, role_id, assigned_at, assigned_by, is_active)
+                                VALUES ($1, $2, now(), $3, true)
+                                ON CONFLICT (user_id, role_id) DO UPDATE SET is_active = true, assigned_at = now(), assigned_by = $3
+                            """, user_dict["id"], super_role["id"], actor_id)
+
                     await log_audit(conn, actor_id, "RESTORE", "users", user_dict["id"], dict(existing), user_dict)
+                    await emit_cache_invalidation(scope="permissions", key=f"perms:{user_dict['id']}")
                     return user_dict
 
             sql = """
                 INSERT INTO users (
-                    email, full_name, is_active, is_super_admin,
+                    email, full_name, department, job_title, is_active, is_super_admin,
                     auth_provider, sso_enabled, force_password_change,
                     created_at, created_by
                 )
-                VALUES ($1, $2, $3, $4, 'microsoft', TRUE, FALSE, now(), $5)
+                VALUES ($1, $2, $3, $4, $5, $6, 'microsoft', TRUE, FALSE, now(), $7)
                 RETURNING id, email, full_name, is_active, is_super_admin,
                           last_login_at, created_at, updated_at
             """
@@ -162,11 +176,31 @@ async def create_user(user: UserCreate, actor_id: UUID = None):
                 sql,
                 clean_email,
                 user.full_name,
+                user.department,
+                user.job_title,
                 user.is_active,
                 user.is_super_admin,
                 actor_id,
             )
             user_dict = dict(row)
+
+            if user.is_super_admin:
+                super_role = await conn.fetchrow("SELECT id FROM roles WHERE code = 'SUPER_ADMIN' AND deleted_at IS NULL")
+                if super_role:
+                    await conn.execute("""
+                        INSERT INTO user_roles (user_id, role_id, assigned_at, assigned_by, is_active)
+                        VALUES ($1, $2, now(), $3, true)
+                        ON CONFLICT (user_id, role_id) DO UPDATE SET is_active = true, assigned_at = now(), assigned_by = $3
+                    """, user_dict["id"], super_role["id"], actor_id)
+            else:
+                default_role = await conn.fetchrow("SELECT id FROM roles WHERE code IN ('REQUESTER', 'USER') AND deleted_at IS NULL ORDER BY CASE WHEN code = 'REQUESTER' THEN 1 ELSE 2 END LIMIT 1")
+                if default_role:
+                    await conn.execute("""
+                        INSERT INTO user_roles (user_id, role_id, assigned_at, assigned_by, is_active)
+                        VALUES ($1, $2, now(), $3, true)
+                        ON CONFLICT (user_id, role_id) DO UPDATE SET is_active = true, assigned_at = now(), assigned_by = $3
+                    """, user_dict["id"], default_role["id"], actor_id)
+
             await log_audit(conn, actor_id, "CREATE", "users", user_dict["id"], None, user_dict)
             await emit_cache_invalidation(scope="permissions", key=f"perms:{user_dict['id']}")
             return user_dict
@@ -205,6 +239,20 @@ async def update_user(user_id: UUID, user: UserUpdate, actor_id: UUID = None):
                 updates.append(f"is_super_admin = ${arg_idx}")
                 args.append(user.is_super_admin)
                 arg_idx += 1
+
+                super_role = await conn.fetchrow("SELECT id FROM roles WHERE code = 'SUPER_ADMIN' AND deleted_at IS NULL")
+                if super_role:
+                    if user.is_super_admin:
+                        await conn.execute("""
+                            INSERT INTO user_roles (user_id, role_id, assigned_at, assigned_by, is_active)
+                            VALUES ($1, $2, now(), $3, true)
+                            ON CONFLICT (user_id, role_id) DO UPDATE SET is_active = true, assigned_at = now(), assigned_by = $3
+                        """, user_id, super_role["id"], actor_id)
+                    else:
+                        await conn.execute("""
+                            UPDATE user_roles SET is_active = false WHERE user_id = $1 AND role_id = $2
+                        """, user_id, super_role["id"])
+
             if not updates:
                 return _public_user(old)
 

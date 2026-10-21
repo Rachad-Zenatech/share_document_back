@@ -34,9 +34,13 @@ async def setup():
                 deleted_at TIMESTAMP WITH TIME ZONE,
                 deleted_by UUID,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                created_by UUID,
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                updated_by UUID
+                updated_by UUID,
+                force_password_change BOOLEAN DEFAULT FALSE
             );
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS created_by UUID;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS force_password_change BOOLEAN DEFAULT FALSE;
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
             CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
 
