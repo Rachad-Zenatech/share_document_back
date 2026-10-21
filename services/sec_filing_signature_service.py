@@ -25,7 +25,7 @@ def _row_to_envelope(row: Any) -> dict[str, Any]:
 
 
 async def dispatch_envelope(payload: dict[str, Any]) -> dict[str, Any]:
-    pool = await get_pool()
+    pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
@@ -73,7 +73,7 @@ async def get_envelope(envelope_id: str) -> dict[str, Any] | None:
 
 
 async def complete_envelope(envelope_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
-    pool = await get_pool()
+    pool = get_pool()
     async with pool.acquire() as conn:
         now = datetime.datetime.now(datetime.timezone.utc)
         row = await conn.fetchrow(
@@ -125,7 +125,7 @@ async def complete_envelope(envelope_id: str, payload: dict[str, Any]) -> dict[s
 
 async def delete_envelope(envelope_id: str) -> bool:
     """Deletes an envelope so no signature data is retained in the database."""
-    pool = await get_pool()
+    pool = get_pool()
     async with pool.acquire() as conn:
         result = await conn.execute(
             """
@@ -139,7 +139,7 @@ async def delete_envelope(envelope_id: str) -> bool:
 
 async def cleanup_expired_envelopes() -> None:
     """Purges transient signature envelopes older than 15 minutes."""
-    pool = await get_pool()
+    pool = get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
             """

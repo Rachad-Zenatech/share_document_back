@@ -129,7 +129,7 @@ async def ensure_schema() -> None:
     async with _schema_lock:
         if _schema_ensured:
             return
-        pool = await get_pool()
+        pool = get_pool()
         async with pool.acquire() as conn:
             await conn.execute(DDL)
         _schema_ensured = True

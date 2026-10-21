@@ -72,7 +72,7 @@ async def get_table_template(template_identifier: str | UUID) -> dict[str, Any] 
 async def create_table_template(payload: dict[str, Any], user_id: UUID) -> dict[str, Any]:
     requested_key = payload.get("template_key") or _slugify(payload["name"])
 
-    pool = await get_pool()
+    pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
             # The unique index only covers live rows, so find a free key among those.
@@ -221,7 +221,7 @@ async def seed_builtin_table_templates(overwrite: bool = False) -> dict[str, int
     seed = _load_seed()
     inserted = updated = skipped = 0
 
-    pool = await get_pool()
+    pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
             for entry in seed:

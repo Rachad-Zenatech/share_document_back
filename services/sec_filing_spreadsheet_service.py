@@ -42,7 +42,7 @@ def _row_to_spreadsheet(row: Any) -> dict[str, Any]:
 
 async def get_document_spreadsheet(document_id: str) -> dict[str, Any] | None:
     await ensure_schema()
-    pool = await get_pool()
+    pool = get_pool()
 
     query = f"""
         SELECT {_SPREADSHEET_COLUMNS}
@@ -59,7 +59,7 @@ async def get_document_spreadsheet(document_id: str) -> dict[str, Any] | None:
 
 async def delete_document_spreadsheet(document_id: str) -> bool:
     await ensure_schema()
-    pool = await get_pool()
+    pool = get_pool()
 
     async with pool.acquire() as conn:
         result = await conn.execute(
@@ -75,7 +75,7 @@ async def save_document_spreadsheet(
     user_id: Optional[UUID] = None,
 ) -> dict[str, Any]:
     await ensure_schema()
-    pool = await get_pool()
+    pool = get_pool()
 
     name = data.get("name") or "Spreadsheet"
     sheet_name = data.get("sheetName") or data.get("sheet_name") or "Sheet1"
@@ -140,7 +140,7 @@ async def update_spreadsheet_cell(
     user_id: Optional[UUID] = None,
 ) -> dict[str, Any]:
     await ensure_schema()
-    pool = await get_pool()
+    pool = get_pool()
     now = datetime.now(timezone.utc)
     clean_ref = cell_ref.strip().upper()
 
