@@ -40,6 +40,16 @@ async def setup():
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
             CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
 
+            -- Microsoft SSO identity columns used by upsertMicrosoftUser and Graph sync.
+            -- Added with ALTER so databases created before these existed are upgraded too.
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS microsoft_tenant_id VARCHAR(255);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS microsoft_object_id VARCHAR(255);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS microsoft_subject_id VARCHAR(255);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS sso_enabled BOOLEAN NOT NULL DEFAULT false;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS last_sso_login_at TIMESTAMP WITH TIME ZONE;
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_users_microsoft_subject ON users(auth_provider, microsoft_subject_id);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_users_microsoft_tenant_object ON users(microsoft_tenant_id, microsoft_object_id);
+
             -- Roles
             CREATE TABLE IF NOT EXISTS roles (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
