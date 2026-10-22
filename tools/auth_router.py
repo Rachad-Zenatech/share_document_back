@@ -12,11 +12,13 @@ from services.auth_service import (
     getUserRoles,
     getUserNavigationPermissions,
     getUserToolPermissions,
+    get_my_permissions,
     clear_access_token_cookie,
     get_current_user_id_dependency,
     set_access_token_cookie,
     AUTH_COOKIE_NAME,
 )
+from services.cache_service import master_data_cache
 from services.graph_service import fetch_me_profile
 from tools.rbac_router import get_current_user_id
 from services.rbac_service import log_login_activity
@@ -157,45 +159,60 @@ async def microsoft_callback(request: Request):
 
 @router.get("/auth/bootstrap")
 async def get_auth_bootstrap(user_id: UUID = Depends(get_current_user_id_dependency)):
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        user = await conn.fetchrow("SELECT id, email, full_name, is_active, is_super_admin, auth_provider FROM users WHERE id = $1", user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+    perms = await get_my_permissions(user_id)
+    if not perms:
+        raise HTTPException(status_code=404, detail="User not found")
 
-        user_dict = {
-            "id": str(user["id"]),
-            "email": user["email"],
-            "fullName": user["full_name"],
-            "isActive": user["is_active"],
-            "isSuperAdmin": user["is_super_admin"],
-            "authProvider": user["auth_provider"]
-        }
+    u = perms["user"]
+    user_dict = {
+        "id": str(u["id"]),
+        "email": u["email"],
+        "fullName": u.get("full_name"),
+        "isActive": u.get("is_active", True),
+        "isSuperAdmin": u.get("is_super_admin", False),
+        "authProvider": u.get("auth_provider", "microsoft"),
+    }
+    roles = perms.get("roles", [])
+    is_super_admin = user_dict["isSuperAdmin"] or any(r.get("code") == "SUPER_ADMIN" for r in roles)
 
-        roles = await getUserRoles(user_id)
+    if is_super_admin:
+        navigation = await get_all_navigation_items()
+        tools = await get_all_mcp_tools()
+    else:
         role_ids = [r["id"] for r in roles]
+        navigation = await getUserNavigationPermissions(role_ids)
+        tools = await getUserToolPermissions(role_ids)
 
-        navigation = await getUserNavigationPermissions(role_ids) if not user["is_super_admin"] else await get_all_navigation_items()
-        tools = await getUserToolPermissions(role_ids) if not user["is_super_admin"] else await get_all_mcp_tools()
-
-        return {
-            "user": user_dict,
-            "roles": roles,
-            "navigation": navigation,
-            "tools": tools
-        }
+    return {
+        "user": user_dict,
+        "roles": roles,
+        "navigation": navigation,
+        "tools": tools,
+    }
 
 async def get_all_navigation_items():
+    cache_key = "master_data:navigation_items"
+    cached = await master_data_cache.get(cache_key)
+    if cached is not None:
+        return cached
     pool = get_pool()
     async with pool.acquire() as conn:
         items = await conn.fetch("SELECT id, code, name, route_path as \"routePath\", parent_code as \"parentCode\", display_order as \"displayOrder\", icon FROM navigation_items WHERE is_active = true ORDER BY display_order")
-        return [dict(i) for i in items]
+        res = [dict(i) for i in items]
+        await master_data_cache.set(cache_key, res, ttl_seconds=300)
+        return res
 
 async def get_all_mcp_tools():
+    cache_key = "master_data:mcp_tools"
+    cached = await master_data_cache.get(cache_key)
+    if cached is not None:
+        return cached
     pool = get_pool()
     async with pool.acquire() as conn:
         tools = await conn.fetch("SELECT id, code, name, 'execute' as \"accessLevel\", '{}'::jsonb as conditions FROM mcp_tools WHERE is_active = true")
-        return [dict(t) for t in tools]
+        res = [dict(t) for t in tools]
+        await master_data_cache.set(cache_key, res, ttl_seconds=300)
+        return res
 
 @router.post("/auth/heartbeat")
 async def heartbeat(

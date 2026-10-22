@@ -24,11 +24,11 @@ async def create_pool():
         retries = 5
         for attempt in range(retries):
             try:
-                min_size = int(os.getenv("DB_POOL_MIN_SIZE", "2"))
-                max_size = int(os.getenv("DB_POOL_MAX_SIZE", "10"))
+                min_size = int(os.getenv("DB_POOL_MIN_SIZE", "1"))
+                max_size = int(os.getenv("DB_POOL_MAX_SIZE", "5"))
                 max_queries = int(os.getenv("DB_POOL_MAX_QUERIES", "50000"))
-                max_inactive_lifetime = float(os.getenv("DB_POOL_MAX_INACTIVE_LIFETIME", "300.0"))
-                cmd_timeout = float(os.getenv("DB_COMMAND_TIMEOUT", "120.0"))
+                max_inactive_lifetime = float(os.getenv("DB_POOL_MAX_INACTIVE_LIFETIME", "60.0"))
+                cmd_timeout = float(os.getenv("DB_COMMAND_TIMEOUT", "30.0"))
 
                 ssl_env = os.getenv("DATABASE_SSL", "").lower().strip()
                 if ssl_env in ("false", "0", "no", "disable", "off"):

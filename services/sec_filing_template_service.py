@@ -13,6 +13,7 @@ from typing import Any
 from uuid import UUID
 
 from postgresql_db.database import fetch_all, fetch_one, get_pool
+from services.cache_service import master_data_cache, emit_cache_invalidation
 
 _COLUMNS = """
     id, template_key, name, description, badge, icon, color, sort_order,
@@ -35,6 +36,12 @@ def _row_to_template(row: Any) -> dict[str, Any]:
 
 
 async def list_table_templates(include_deleted: bool = False) -> dict[str, Any]:
+    cache_key = "master_data:sec_table_templates"
+    if not include_deleted:
+        cached = await master_data_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
     where = "" if include_deleted else "WHERE deleted_at IS NULL"
     rows = await fetch_all(
         f"""
@@ -45,7 +52,10 @@ async def list_table_templates(include_deleted: bool = False) -> dict[str, Any]:
         """
     )
     templates = [_row_to_template(row) for row in rows]
-    return {"templates": templates, "total": len(templates)}
+    result = {"templates": templates, "total": len(templates)}
+    if not include_deleted:
+        await master_data_cache.set(cache_key, result, ttl_seconds=300)
+    return result
 
 
 async def get_table_template(template_identifier: str | UUID) -> dict[str, Any] | None:
@@ -95,6 +105,7 @@ async def create_table_template(payload: dict[str, Any], user_id: UUID) -> dict[
                 json.dumps(payload["block"]),
                 user_id,
             )
+    await emit_cache_invalidation(scope="master_data")
     return _row_to_template(row)
 
 
@@ -167,6 +178,7 @@ async def update_table_template(
     )
     if not row:
         raise ValueError("template not found")
+    await emit_cache_invalidation(scope="master_data")
     return _row_to_template(row)
 
 
@@ -193,6 +205,7 @@ async def delete_table_template(template_identifier: str | UUID, user_id: UUID) 
         user_id,
         existing["id"],
     )
+    await emit_cache_invalidation(scope="master_data")
     return {"id": str(existing["id"]), "deleted": True}
 
 

@@ -634,13 +634,22 @@ async def update_role_mcp_tool_permissions(role_id: UUID, perms: list[RoleMcpToo
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
-            for p in perms:
-                existing = await conn.fetchrow("SELECT id FROM role_mcp_tool_permissions WHERE role_id = $1 AND mcp_tool_id = $2", role_id, p.mcp_tool_id)
-                conds_json = json.dumps(p.conditions) if p.conditions else "{}"
-                if existing:
-                    await conn.execute("UPDATE role_mcp_tool_permissions SET is_allowed = $1, access_level = $2, conditions = $3::jsonb, updated_at = now(), updated_by = $4 WHERE id = $5", p.is_allowed, p.access_level, conds_json, actor_id, existing["id"])
-                else:
-                    await conn.execute("INSERT INTO role_mcp_tool_permissions (role_id, mcp_tool_id, is_allowed, access_level, conditions, created_at, created_by) VALUES ($1, $2, $3, $4, $5::jsonb, now(), $6)", role_id, p.mcp_tool_id, p.is_allowed, p.access_level, conds_json, actor_id)
+            if perms:
+                tool_ids = [p.mcp_tool_id for p in perms]
+                is_alloweds = [p.is_allowed for p in perms]
+                access_levels = [p.access_level for p in perms]
+                conditions = [json.dumps(p.conditions) if p.conditions else "{}" for p in perms]
+                await conn.execute("""
+                    INSERT INTO role_mcp_tool_permissions (role_id, mcp_tool_id, is_allowed, access_level, conditions, created_at, created_by, updated_at, updated_by)
+                    SELECT $1, unnest($2::uuid[]), unnest($3::boolean[]), unnest($4::varchar[]), unnest($5::text[])::jsonb, now(), $6, now(), $6
+                    ON CONFLICT (role_id, mcp_tool_id)
+                    DO UPDATE SET
+                        is_allowed = EXCLUDED.is_allowed,
+                        access_level = EXCLUDED.access_level,
+                        conditions = EXCLUDED.conditions,
+                        updated_at = now(),
+                        updated_by = EXCLUDED.updated_by
+                """, role_id, tool_ids, is_alloweds, access_levels, conditions, actor_id)
 
             await log_audit(conn, actor_id, "UPDATE", "role_mcp_tool_permissions", role_id, None, None)
             await emit_cache_invalidation(scope="roles")

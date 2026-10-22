@@ -1,6 +1,6 @@
 from uuid import UUID
 from postgresql_db.database import fetch_all, fetch_one
-from services.cache_service import permission_cache, emit_cache_invalidation
+from services.cache_service import permission_cache, master_data_cache, emit_cache_invalidation
 import jwt
 import asyncio
 import contextvars
@@ -101,30 +101,39 @@ async def get_my_permissions(user_id: UUID):
     mcp_perms = []
 
     if is_super_admin:
-        # Get all pages and actions
-        pages = await fetch_all("SELECT code FROM navigation_items WHERE is_active = true")
-        actions = await fetch_all("SELECT code FROM permission_actions")
-        action_codes = [a["code"] for a in actions]
-        for p in pages:
-            page_perms[p["code"]] = action_codes
+        # Get all pages and actions from Tier 1 master_data_cache or DB
+        cached_pages = await master_data_cache.get("master_data:navigation_codes")
+        cached_actions = await master_data_cache.get("master_data:action_codes")
+        if cached_pages is None or cached_actions is None:
+            pages = await fetch_all("SELECT code FROM navigation_items WHERE is_active = true")
+            actions = await fetch_all("SELECT code FROM permission_actions")
+            cached_pages = [p["code"] for p in pages]
+            cached_actions = [a["code"] for a in actions]
+            await master_data_cache.set("master_data:navigation_codes", cached_pages, ttl_seconds=300)
+            await master_data_cache.set("master_data:action_codes", cached_actions, ttl_seconds=300)
 
-        # Get all MCP tools
-        tools = await fetch_all("SELECT code FROM mcp_tools WHERE is_active = true")
-        mcp_perms = [t["code"] for t in tools]
+        for pc in cached_pages:
+            page_perms[pc] = list(cached_actions)
+
+        cached_tools = await master_data_cache.get("master_data:tool_codes")
+        if cached_tools is None:
+            tools = await fetch_all("SELECT code FROM mcp_tools WHERE is_active = true")
+            cached_tools = [t["code"] for t in tools]
+            await master_data_cache.set("master_data:tool_codes", cached_tools, ttl_seconds=300)
+        mcp_perms = list(cached_tools)
     else:
         # Get assigned page permissions
         if roles:
             role_ids = [r["id"] for r in roles]
-            placeholders = ", ".join(f"${i+1}" for i in range(len(role_ids)))
 
-            page_sql = f"""
+            page_sql = """
                 SELECT p.code as page_code, a.code as action_code
                 FROM role_navigation_permissions rpp
                 JOIN navigation_items p ON rpp.navigation_item_id = p.id
                 JOIN permission_actions a ON rpp.action_id = a.id
-                WHERE rpp.role_id IN ({placeholders}) AND rpp.is_allowed = true
+                WHERE rpp.role_id = ANY($1::uuid[]) AND rpp.is_allowed = true
             """
-            assigned_page_perms = await fetch_all(page_sql, *role_ids)
+            assigned_page_perms = await fetch_all(page_sql, role_ids)
             for perm in assigned_page_perms:
                 pc = perm["page_code"]
                 ac = perm["action_code"]
@@ -133,23 +142,23 @@ async def get_my_permissions(user_id: UUID):
                 if ac not in page_perms[pc]:
                     page_perms[pc].append(ac)
 
-            mcp_sql = f"""
+            mcp_sql = """
                 SELECT t.code as tool_code
                 FROM role_mcp_tool_permissions rm
                 JOIN mcp_tools t ON rm.mcp_tool_id = t.id
-                WHERE rm.role_id IN ({placeholders}) AND rm.is_allowed = true
+                WHERE rm.role_id = ANY($1::uuid[]) AND rm.is_allowed = true
             """
-            assigned_mcp_perms = await fetch_all(mcp_sql, *role_ids)
+            assigned_mcp_perms = await fetch_all(mcp_sql, role_ids)
             mcp_perms = list(set([t["tool_code"] for t in assigned_mcp_perms]))
 
             # --- ADD PBAC PERMISSION GROUPS ---
-            pbac_sql = f"""
+            pbac_sql = """
                 SELECT a.api_module_code, a.action
                 FROM role_permission_groups rpg
                 JOIN permission_group_actions a ON rpg.permission_group_id = a.permission_group_id
-                WHERE rpg.role_id IN ({placeholders})
+                WHERE rpg.role_id = ANY($1::uuid[])
             """
-            pbac_perms = await fetch_all(pbac_sql, *role_ids)
+            pbac_perms = await fetch_all(pbac_sql, role_ids)
             for perm in pbac_perms:
                 pc = perm["api_module_code"]
                 ac = perm["action"]
@@ -472,30 +481,28 @@ async def getUserNavigationPermissions(role_ids: list):
     from postgresql_db.database import fetch_all
     if not role_ids:
         return []
-    placeholders = ', '.join(f'${i+1}' for i in range(len(role_ids)))
-    nav_sql = f"""
+    nav_sql = """
         SELECT DISTINCT n.id, n.code, n.name, n.route_path as "routePath",
                n.parent_code as "parentCode", n.display_order as "displayOrder", n.icon
         FROM role_navigation_permissions rpp
         JOIN navigation_items n ON rpp.navigation_item_id = n.id
-        WHERE rpp.role_id IN ({placeholders}) AND rpp.is_allowed = true AND n.is_active = true
+        WHERE rpp.role_id = ANY($1::uuid[]) AND rpp.is_allowed = true AND n.is_active = true
         ORDER BY n.display_order
     """
-    nav_items = await fetch_all(nav_sql, *role_ids)
+    nav_items = await fetch_all(nav_sql, role_ids)
     return [dict(n) for n in nav_items]
 
 async def getUserToolPermissions(role_ids: list):
     from postgresql_db.database import fetch_all
     if not role_ids:
         return []
-    placeholders = ', '.join(f'${i+1}' for i in range(len(role_ids)))
-    tool_sql = f"""
+    tool_sql = """
         SELECT t.id, t.code, t.name, rmp.access_level as "accessLevel", rmp.conditions
         FROM role_mcp_tool_permissions rmp
         JOIN mcp_tools t ON rmp.mcp_tool_id = t.id
-        WHERE rmp.role_id IN ({placeholders}) AND rmp.is_allowed = true AND t.is_active = true
+        WHERE rmp.role_id = ANY($1::uuid[]) AND rmp.is_allowed = true AND t.is_active = true
     """
-    tools = await fetch_all(tool_sql, *role_ids)
+    tools = await fetch_all(tool_sql, role_ids)
     return [dict(t) for t in tools]
 
 async def get_current_user_id_dependency(

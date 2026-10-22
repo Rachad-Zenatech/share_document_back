@@ -43,6 +43,9 @@ async def setup():
             ALTER TABLE users ADD COLUMN IF NOT EXISTS force_password_change BOOLEAN DEFAULT FALSE;
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
             CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
+            CREATE INDEX IF NOT EXISTS idx_users_lower_email ON users(LOWER(email)) WHERE deleted_at IS NULL;
+            CREATE INDEX IF NOT EXISTS idx_users_active_live ON users(id, is_super_admin) WHERE deleted_at IS NULL AND is_active = true;
+            CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at DESC) WHERE deleted_at IS NULL;
 
             -- Microsoft SSO identity columns used by upsertMicrosoftUser and Graph sync.
             -- Added with ALTER so databases created before these existed are upgraded too.
@@ -70,6 +73,8 @@ async def setup():
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             );
             CREATE INDEX IF NOT EXISTS idx_roles_code ON roles(code);
+            CREATE INDEX IF NOT EXISTS idx_roles_parent_live ON roles(parent_role_id) WHERE deleted_at IS NULL;
+            CREATE INDEX IF NOT EXISTS idx_roles_active_live ON roles(id, code) WHERE deleted_at IS NULL AND is_active = true;
 
             -- User Roles
             CREATE TABLE IF NOT EXISTS user_roles (
@@ -83,6 +88,8 @@ async def setup():
             );
             CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
             CREATE INDEX IF NOT EXISTS idx_user_roles_role_id ON user_roles(role_id);
+            CREATE INDEX IF NOT EXISTS idx_user_roles_user_active ON user_roles(user_id, role_id) WHERE is_active = true;
+            CREATE INDEX IF NOT EXISTS idx_user_roles_role_active ON user_roles(role_id, user_id) WHERE is_active = true;
 
             -- Navigation Items
             CREATE TABLE IF NOT EXISTS navigation_items (
@@ -119,6 +126,7 @@ async def setup():
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 UNIQUE(role_id, navigation_item_id, action_id)
             );
+            CREATE INDEX IF NOT EXISTS idx_rnp_role_allowed ON role_navigation_permissions(role_id, navigation_item_id, action_id) WHERE is_allowed = true;
 
             -- PBAC Permission Modules
             CREATE TABLE IF NOT EXISTS permission_modules (
@@ -151,6 +159,7 @@ async def setup():
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             );
+            CREATE INDEX IF NOT EXISTS idx_pga_group_id ON permission_group_actions(permission_group_id);
 
             -- Role PBAC Group Mappings
             CREATE TABLE IF NOT EXISTS role_permission_groups (
@@ -188,6 +197,7 @@ async def setup():
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 UNIQUE(role_id, mcp_tool_id)
             );
+            CREATE INDEX IF NOT EXISTS idx_rmtp_role_allowed ON role_mcp_tool_permissions(role_id, mcp_tool_id) WHERE is_allowed = true;
 
             -- Audit Logs
             CREATE TABLE IF NOT EXISTS audit_logs (
@@ -204,6 +214,9 @@ async def setup():
             );
             CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_user_id);
             CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_created ON audit_logs(actor_user_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_audit_logs_entity_created ON audit_logs(entity_type, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_audit_logs_action_created ON audit_logs(action, created_at DESC);
 
             -- Login Activity Logs
             CREATE TABLE IF NOT EXISTS login_activity_logs (
@@ -219,6 +232,8 @@ async def setup():
             );
             CREATE INDEX IF NOT EXISTS idx_login_activity_logs_user_id ON login_activity_logs(user_id);
             CREATE INDEX IF NOT EXISTS idx_login_activity_logs_created_at ON login_activity_logs(created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_login_activity_user_success_created ON login_activity_logs(user_id, created_at DESC) WHERE success = true;
+            CREATE INDEX IF NOT EXISTS idx_login_activity_email_created ON login_activity_logs(email, created_at DESC);
 
             -- Notifications (Real-time SSE and in-app alerts)
             CREATE TABLE IF NOT EXISTS notifications (
@@ -239,6 +254,8 @@ async def setup():
             );
             CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
             CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
+            CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id) WHERE is_read = false;
 
             -- App Settings
             CREATE TABLE IF NOT EXISTS app_settings (

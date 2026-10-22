@@ -89,6 +89,12 @@ CREATE TABLE IF NOT EXISTS sec_signature_envelopes (
 CREATE INDEX IF NOT EXISTS sec_signature_envelopes_env_idx
     ON sec_signature_envelopes (envelope_id);
 
+CREATE INDEX IF NOT EXISTS idx_sec_sig_env_created
+    ON sec_signature_envelopes (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_sec_sig_env_doc_status
+    ON sec_signature_envelopes (document_id, status);
+
 -- Attached Dynamic Spreadsheets for Document Variable Linking
 CREATE TABLE IF NOT EXISTS sec_attached_spreadsheets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -69,12 +69,11 @@ async def lifespan(app: FastAPI):
     loop.set_exception_handler(asyncio_exception_handler)
     try:
         await create_pool()
-        # Ensure schema tables exist
         try:
-            from postgresql_db.setup_pbac_schema import setup as setup_schema
-            # Non-blocking schema initialization check
-        except Exception as schema_err:
-            logger.warning(f"Schema verification note: {schema_err}")
+            from postgresql_db.performance_indexes import ensure_performance_indexes
+            await ensure_performance_indexes()
+        except Exception as idx_err:
+            logger.warning(f"Performance indexes verification note: {idx_err}")
         try:
             await bootstrap_sec_filing_table_templates()
         except Exception as sec_err:
