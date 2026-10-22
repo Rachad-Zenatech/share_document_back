@@ -43,6 +43,7 @@ from tools.observability import router as observability_router
 from tools.log_router import router as log_router
 from tools.graph_router import router as graph_router
 from tools.sec_filings import router as sec_filings_router
+from tools.section_router import router as section_router
 from services.sec_filing_template_service import bootstrap_sec_filing_table_templates
 
 # MCP tools & AI functions
@@ -277,6 +278,7 @@ app.include_router(log_router, prefix="/api", tags=["Logs"])
 app.include_router(observability_router, prefix="/api", tags=["Observability"])
 app.include_router(graph_router, prefix="/api", tags=["Microsoft Graph"], dependencies=authenticated)
 app.include_router(sec_filings_router, prefix="/api", tags=["SEC Filings"])
+app.include_router(section_router, prefix="/api", tags=["Document Sections"])
 
 
 # --- Session Middleware ---
