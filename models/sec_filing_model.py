@@ -187,6 +187,16 @@ class FinancialTableTemplateList(BaseModel):
 
 
 
+class SecWorkflowAssignee(BaseModel):
+    """A person on a workflow step: a platform user (user_id set) or an external name."""
+
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    user_id: UUID | None = Field(default=None, alias="userId")
+    name: str = Field(min_length=1, max_length=200)
+    email: str | None = Field(default=None, max_length=320)
+
+
 class SecWorkflowStep(BaseModel):
     """One step of a reporting workflow, e.g. "Write financial statements and footnotes"."""
 
@@ -194,7 +204,10 @@ class SecWorkflowStep(BaseModel):
 
     step: int = Field(ge=1)
     description: str = Field(min_length=1, max_length=1000)
-    assigned_to: str | None = Field(default=None, alias="assignedTo", max_length=500)
+    # Display text ("Paul, Gina, Auditors"); kept alongside `assignees` for export and
+    # for steps imported from sheets, which only carry free text.
+    assigned_to: str | None = Field(default=None, alias="assignedTo", max_length=1000)
+    assignees: list[SecWorkflowAssignee] | None = None
 
 
 class SecWorkflowCreate(BaseModel):

@@ -155,7 +155,7 @@ async def create_sec_workflow(
     user_id: UUID = Depends(require_permission("SEC_FILINGS_CREATE")),
 ):
     data = payload.model_dump(by_alias=False)
-    data["steps"] = [step.model_dump(by_alias=True) for step in payload.steps]
+    data["steps"] = [step.model_dump(mode="json", by_alias=True, exclude_none=True) for step in payload.steps]
     return await create_workflow(data, user_id)
 
 
@@ -178,7 +178,7 @@ async def update_sec_workflow(
 ):
     data = payload.model_dump(by_alias=False, exclude_unset=True)
     if payload.steps is not None:
-        data["steps"] = [step.model_dump(by_alias=True) for step in payload.steps]
+        data["steps"] = [step.model_dump(mode="json", by_alias=True, exclude_none=True) for step in payload.steps]
     try:
         return await update_workflow(workflow_id, data, user_id)
     except ValueError as exc:
