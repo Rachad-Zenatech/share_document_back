@@ -13,6 +13,12 @@ from models.sec_filing_model import (
     MobileSignatureCompleteRequest,
     MobileSignatureDispatchRequest,
     MobileSignatureEnvelopeResponse,
+    SecDocumentWorkflowAssignPayload,
+    SecWorkflow,
+    SecWorkflowCreate,
+    SecWorkflowDocumentsPayload,
+    SecWorkflowList,
+    SecWorkflowUpdate,
     UpdateSpreadsheetCellPayload,
 )
 from services.auth_service import require_permission
@@ -35,6 +41,17 @@ from services.sec_filing_template_service import (
     get_table_template,
     list_table_templates,
     update_table_template,
+)
+from services.sec_filing_workflow_service import (
+    assign_document_workflow,
+    create_workflow,
+    delete_workflow,
+    get_document_workflow,
+    get_workflow,
+    list_workflows,
+    set_workflow_documents,
+    unassign_document_workflow,
+    update_workflow,
 )
 
 router = APIRouter(prefix="/sec-filings")
@@ -118,6 +135,116 @@ async def delete_financial_table_template(
     except ValueError as exc:
         detail = str(exc)
         raise HTTPException(status_code=404 if "not found" in detail else 409, detail=detail) from exc
+
+
+# -----------------------------------------------------------------------------
+# Reporting Workflows & Document Workflow Assignments
+# -----------------------------------------------------------------------------
+
+
+@router.get("/workflows", response_model=SecWorkflowList, response_model_exclude_none=True)
+async def list_sec_workflows(
+    user_id: UUID = Depends(require_permission("SEC_FILINGS_READ")),
+):
+    return await list_workflows()
+
+
+@router.post("/workflows", response_model=SecWorkflow, status_code=201, response_model_exclude_none=True)
+async def create_sec_workflow(
+    payload: SecWorkflowCreate,
+    user_id: UUID = Depends(require_permission("SEC_FILINGS_CREATE")),
+):
+    data = payload.model_dump(by_alias=False)
+    data["steps"] = [step.model_dump(by_alias=True) for step in payload.steps]
+    return await create_workflow(data, user_id)
+
+
+@router.get("/workflows/{workflow_id}", response_model=SecWorkflow, response_model_exclude_none=True)
+async def get_sec_workflow(
+    workflow_id: UUID,
+    user_id: UUID = Depends(require_permission("SEC_FILINGS_READ")),
+):
+    workflow = await get_workflow(workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    return workflow
+
+
+@router.put("/workflows/{workflow_id}", response_model=SecWorkflow, response_model_exclude_none=True)
+async def update_sec_workflow(
+    workflow_id: UUID,
+    payload: SecWorkflowUpdate,
+    user_id: UUID = Depends(require_permission("SEC_FILINGS_UPDATE")),
+):
+    data = payload.model_dump(by_alias=False, exclude_unset=True)
+    if payload.steps is not None:
+        data["steps"] = [step.model_dump(by_alias=True) for step in payload.steps]
+    try:
+        return await update_workflow(workflow_id, data, user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.delete("/workflows/{workflow_id}")
+async def delete_sec_workflow(
+    workflow_id: UUID,
+    user_id: UUID = Depends(require_permission("SEC_FILINGS_DELETE")),
+):
+    try:
+        return await delete_workflow(workflow_id, user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.put("/workflows/{workflow_id}/documents", response_model=SecWorkflow, response_model_exclude_none=True)
+async def set_sec_workflow_documents(
+    workflow_id: UUID,
+    payload: SecWorkflowDocumentsPayload,
+    user_id: UUID = Depends(require_permission("SEC_FILINGS_UPDATE")),
+):
+    try:
+        return await set_workflow_documents(workflow_id, payload.document_ids, user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/documents/{document_id}/workflow")
+async def get_sec_document_workflow(
+    document_id: str,
+    user_id: UUID = Depends(require_permission("SEC_FILINGS_READ")),
+):
+    # `workflow` is null when none is assigned, so callers can tell that apart
+    # from a lookup failure.
+    workflow = await get_document_workflow(document_id)
+    return {
+        "documentId": document_id,
+        "workflow": SecWorkflow.model_validate(workflow).model_dump(mode="json", by_alias=True) if workflow else None,
+    }
+
+
+@router.put("/documents/{document_id}/workflow")
+async def assign_sec_document_workflow(
+    document_id: str,
+    payload: SecDocumentWorkflowAssignPayload,
+    user_id: UUID = Depends(require_permission("SEC_FILINGS_UPDATE")),
+):
+    try:
+        workflow = await assign_document_workflow(document_id, payload.workflow_id, user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {
+        "documentId": document_id,
+        "workflow": SecWorkflow.model_validate(workflow).model_dump(mode="json", by_alias=True),
+    }
+
+
+@router.delete("/documents/{document_id}/workflow")
+async def unassign_sec_document_workflow(
+    document_id: str,
+    user_id: UUID = Depends(require_permission("SEC_FILINGS_UPDATE")),
+):
+    deleted = await unassign_document_workflow(document_id)
+    return {"documentId": document_id, "deleted": deleted}
 
 
 # -----------------------------------------------------------------------------

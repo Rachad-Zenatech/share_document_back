@@ -120,6 +120,36 @@ CREATE UNIQUE INDEX IF NOT EXISTS sec_attached_spreadsheets_doc_idx
     -- Spreadsheet Hub workbook id, so a linked sheet maps back to its frontend registry entry
     ALTER TABLE sec_attached_spreadsheets ADD COLUMN IF NOT EXISTS source_sheet_id VARCHAR;
 
+-- Reporting workflows (e.g. "FS Notes V2"): an ordered list of steps, each with
+-- who it is assigned to. A contributor invite picks one step as its branch title.
+CREATE TABLE IF NOT EXISTS sec_workflows (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR NOT NULL,
+    description TEXT,
+    -- [{ step, description, assignedTo }]
+    steps JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID REFERENCES users(id),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_by UUID REFERENCES users(id),
+    deleted_at TIMESTAMPTZ,
+    deleted_by UUID REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS sec_workflows_listing_idx
+    ON sec_workflows (deleted_at, name);
+
+-- One workflow per document. Documents are identified by the frontend's string id.
+CREATE TABLE IF NOT EXISTS sec_document_workflow_assignments (
+    document_id VARCHAR PRIMARY KEY,
+    workflow_id UUID NOT NULL REFERENCES sec_workflows(id) ON DELETE CASCADE,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    assigned_by UUID REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS sec_document_workflow_assignments_workflow_idx
+    ON sec_document_workflow_assignments (workflow_id);
+
 
 """
 

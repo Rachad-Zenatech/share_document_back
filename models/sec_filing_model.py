@@ -187,6 +187,66 @@ class FinancialTableTemplateList(BaseModel):
 
 
 
+class SecWorkflowStep(BaseModel):
+    """One step of a reporting workflow, e.g. "Write financial statements and footnotes"."""
+
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    step: int = Field(ge=1)
+    description: str = Field(min_length=1, max_length=1000)
+    assigned_to: str | None = Field(default=None, alias="assignedTo", max_length=500)
+
+
+class SecWorkflowCreate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = None
+    steps: list[SecWorkflowStep] = Field(min_length=1)
+
+
+class SecWorkflowUpdate(BaseModel):
+    """Partial update; only the supplied fields are written."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = None
+    steps: list[SecWorkflowStep] | None = Field(default=None, min_length=1)
+
+
+class SecWorkflow(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    id: UUID
+    name: str
+    description: str | None = None
+    steps: list[SecWorkflowStep]
+    document_ids: list[str] = Field(default_factory=list, serialization_alias="documentIds")
+    created_at: datetime = Field(serialization_alias="createdAt")
+    updated_at: datetime = Field(serialization_alias="updatedAt")
+    updated_by: UUID | None = Field(default=None, serialization_alias="updatedBy")
+
+
+class SecWorkflowList(BaseModel):
+    model_config = ConfigDict(serialize_by_alias=True)
+
+    workflows: list[SecWorkflow]
+    total: int
+
+
+class SecWorkflowDocumentsPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    document_ids: list[str] = Field(alias="documentIds")
+
+
+class SecDocumentWorkflowAssignPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    workflow_id: UUID = Field(alias="workflowId")
+
+
 class MobileSignatureDispatchRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     envelope_id: str = Field(alias="envelopeId")
