@@ -260,6 +260,37 @@ class SecDocumentWorkflowAssignPayload(BaseModel):
     workflow_id: UUID = Field(alias="workflowId")
 
 
+class SecDocumentSavePayload(BaseModel):
+    """A whole SecFilingDocument as the editor holds it (stored as JSONB)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    document: dict[str, Any]
+    # Revision the client last loaded; None creates the document or overwrites blindly.
+    base_revision: int | None = Field(default=None, alias="baseRevision")
+    template_type: str | None = Field(default=None, alias="templateType")
+    owner_name: str | None = Field(default=None, alias="ownerName")
+
+
+class SecProposalSavePayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    document_id: str = Field(alias="documentId", min_length=1)
+    proposal: dict[str, Any]
+
+
+class SecVersionSavePayload(BaseModel):
+    snapshot: dict[str, Any]
+
+
+class SecDocumentImportPayload(BaseModel):
+    """What one browser had in localStorage before documents moved to the server."""
+
+    documents: list[dict[str, Any]] = []
+    proposals: list[dict[str, Any]] = []
+    versions: list[dict[str, Any]] = []
+
+
 class MobileSignatureDispatchRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     envelope_id: str = Field(alias="envelopeId")

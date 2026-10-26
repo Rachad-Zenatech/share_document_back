@@ -150,6 +150,66 @@ CREATE TABLE IF NOT EXISTS sec_document_workflow_assignments (
 CREATE INDEX IF NOT EXISTS sec_document_workflow_assignments_workflow_idx
     ON sec_document_workflow_assignments (workflow_id);
 
+-- Filing documents. These used to live only in each browser's localStorage, so
+-- nobody else could see them and clearing site data deleted them. `id` keeps the
+-- frontend's string ids so existing links, workflow and spreadsheet assignments still match.
+CREATE TABLE IF NOT EXISTS sec_documents (
+    id VARCHAR PRIMARY KEY,
+    title VARCHAR NOT NULL DEFAULT 'Untitled Document',
+    form_type VARCHAR,
+    period VARCHAR,
+    template_type VARCHAR,
+    owner_id UUID REFERENCES users(id),
+    owner_email VARCHAR,
+    owner_name VARCHAR,
+    -- Lower-cased emails / user id strings, mirrored from the document for access checks.
+    invited_emails JSONB NOT NULL DEFAULT '[]'::jsonb,
+    invited_user_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+    -- The full SecFilingDocument as the editor uses it (blocks, version, status...).
+    content JSONB NOT NULL,
+    -- Bumped on every save; a save based on an older revision is rejected (409).
+    revision INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID REFERENCES users(id),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_by UUID REFERENCES users(id),
+    deleted_at TIMESTAMPTZ,
+    deleted_by UUID REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS sec_documents_owner_idx ON sec_documents (owner_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS sec_documents_invited_emails_idx ON sec_documents USING gin (invited_emails);
+CREATE INDEX IF NOT EXISTS sec_documents_listing_idx ON sec_documents (deleted_at, updated_at DESC);
+
+-- Change proposals (contributor branches) of a document.
+CREATE TABLE IF NOT EXISTS sec_document_proposals (
+    id VARCHAR PRIMARY KEY,
+    document_id VARCHAR NOT NULL REFERENCES sec_documents(id) ON DELETE CASCADE,
+    status VARCHAR NOT NULL DEFAULT 'draft',
+    author_email VARCHAR,
+    -- The full SecChangeProposal (blocks, spreadsheet copy, review fields...).
+    data JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID REFERENCES users(id),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_by UUID REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS sec_document_proposals_doc_idx ON sec_document_proposals (document_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS sec_document_proposals_author_idx ON sec_document_proposals (author_email);
+
+-- Version snapshots of a document (merges, restores). Append-only.
+CREATE TABLE IF NOT EXISTS sec_document_versions (
+    id VARCHAR PRIMARY KEY,
+    document_id VARCHAR NOT NULL REFERENCES sec_documents(id) ON DELETE CASCADE,
+    version_number INTEGER,
+    data JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS sec_document_versions_doc_idx ON sec_document_versions (document_id, created_at);
+
 
 """
 

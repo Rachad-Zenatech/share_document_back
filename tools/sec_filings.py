@@ -13,7 +13,11 @@ from models.sec_filing_model import (
     MobileSignatureCompleteRequest,
     MobileSignatureDispatchRequest,
     MobileSignatureEnvelopeResponse,
+    SecDocumentImportPayload,
+    SecDocumentSavePayload,
     SecDocumentWorkflowAssignPayload,
+    SecProposalSavePayload,
+    SecVersionSavePayload,
     SecWorkflow,
     SecWorkflowCreate,
     SecWorkflowDocumentsPayload,
@@ -21,7 +25,22 @@ from models.sec_filing_model import (
     SecWorkflowUpdate,
     UpdateSpreadsheetCellPayload,
 )
-from services.auth_service import require_permission
+from services.auth_service import get_current_user_id_dependency, require_permission
+from services.sec_document_service import (
+    DocumentConflict,
+    DocumentForbidden,
+    DocumentNotFound,
+    add_version,
+    delete_document,
+    get_document,
+    get_proposal,
+    import_from_browser,
+    list_documents,
+    list_proposals,
+    list_versions,
+    save_document,
+    save_proposal,
+)
 from services.sec_filing_signature_service import (
     cleanup_expired_envelopes,
     complete_envelope,
@@ -135,6 +154,124 @@ async def delete_financial_table_template(
     except ValueError as exc:
         detail = str(exc)
         raise HTTPException(status_code=404 if "not found" in detail else 409, detail=detail) from exc
+
+
+# -----------------------------------------------------------------------------
+# Filing Documents, Change Proposals & Version Snapshots
+# -----------------------------------------------------------------------------
+# Access is checked per document (owner, invitees, proposal authors, super admins),
+# so these only require a signed-in user: invited contributors may have no
+# SEC_FILINGS role permissions of their own.
+
+
+def _document_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, DocumentNotFound):
+        return HTTPException(status_code=404, detail="Document not found")
+    if isinstance(exc, DocumentForbidden):
+        return HTTPException(status_code=403, detail=str(exc) or "You do not have access to this document")
+    raise exc
+
+
+@router.get("/documents")
+async def list_sec_documents(user_id: UUID = Depends(get_current_user_id_dependency)):
+    return {"documents": await list_documents(user_id)}
+
+
+@router.post("/documents/import")
+async def import_sec_documents(
+    payload: SecDocumentImportPayload,
+    user_id: UUID = Depends(get_current_user_id_dependency),
+):
+    return await import_from_browser(user_id, payload.documents, payload.proposals, payload.versions)
+
+
+@router.get("/documents/{document_id}")
+async def get_sec_document(document_id: str, user_id: UUID = Depends(get_current_user_id_dependency)):
+    try:
+        return await get_document(user_id, document_id)
+    except (DocumentNotFound, DocumentForbidden) as exc:
+        raise _document_error(exc) from exc
+
+
+@router.put("/documents/{document_id}")
+async def save_sec_document(
+    document_id: str,
+    payload: SecDocumentSavePayload,
+    user_id: UUID = Depends(get_current_user_id_dependency),
+):
+    try:
+        return await save_document(
+            user_id,
+            document_id,
+            payload.document,
+            payload.base_revision,
+            payload.template_type,
+            payload.owner_name,
+        )
+    except DocumentConflict as exc:
+        # The client reloads this copy instead of overwriting someone else's save.
+        raise HTTPException(
+            status_code=409,
+            detail={"message": str(exc), "revision": exc.revision, "document": exc.document},
+        ) from exc
+    except (DocumentNotFound, DocumentForbidden) as exc:
+        raise _document_error(exc) from exc
+
+
+@router.delete("/documents/{document_id}")
+async def delete_sec_document(document_id: str, user_id: UUID = Depends(get_current_user_id_dependency)):
+    try:
+        return {"id": document_id, "deleted": await delete_document(user_id, document_id)}
+    except (DocumentNotFound, DocumentForbidden) as exc:
+        raise _document_error(exc) from exc
+
+
+@router.get("/documents/{document_id}/proposals")
+async def list_sec_document_proposals(document_id: str, user_id: UUID = Depends(get_current_user_id_dependency)):
+    try:
+        return {"proposals": await list_proposals(user_id, document_id)}
+    except (DocumentNotFound, DocumentForbidden) as exc:
+        raise _document_error(exc) from exc
+
+
+@router.get("/proposals/{proposal_id}")
+async def get_sec_proposal(proposal_id: str, user_id: UUID = Depends(get_current_user_id_dependency)):
+    try:
+        return await get_proposal(user_id, proposal_id)
+    except (DocumentNotFound, DocumentForbidden) as exc:
+        raise _document_error(exc) from exc
+
+
+@router.put("/proposals/{proposal_id}")
+async def save_sec_proposal(
+    proposal_id: str,
+    payload: SecProposalSavePayload,
+    user_id: UUID = Depends(get_current_user_id_dependency),
+):
+    try:
+        return {"id": proposal_id, "saved": await save_proposal(user_id, proposal_id, payload.document_id, payload.proposal)}
+    except (DocumentNotFound, DocumentForbidden) as exc:
+        raise _document_error(exc) from exc
+
+
+@router.get("/documents/{document_id}/versions")
+async def list_sec_document_versions(document_id: str, user_id: UUID = Depends(get_current_user_id_dependency)):
+    try:
+        return {"versions": await list_versions(user_id, document_id)}
+    except (DocumentNotFound, DocumentForbidden) as exc:
+        raise _document_error(exc) from exc
+
+
+@router.post("/documents/{document_id}/versions")
+async def add_sec_document_version(
+    document_id: str,
+    payload: SecVersionSavePayload,
+    user_id: UUID = Depends(get_current_user_id_dependency),
+):
+    try:
+        return {"saved": await add_version(user_id, document_id, payload.snapshot)}
+    except (DocumentNotFound, DocumentForbidden) as exc:
+        raise _document_error(exc) from exc
 
 
 # -----------------------------------------------------------------------------
