@@ -39,6 +39,7 @@ from tools.search import router as search_router
 from tools.rbac_router import router as rbac_router, get_current_user_id
 from tools.auth_router import router as auth_router
 from tools.notification_router import notification_router
+from tools.notification_ws_router import notification_ws_router
 from tools.observability import router as observability_router
 from tools.log_router import router as log_router
 from tools.graph_router import router as graph_router
@@ -273,6 +274,7 @@ app.include_router(auth_router, prefix="/api", tags=["Authentication"])
 app.include_router(rbac_router, prefix="/api", tags=["RBAC & Configuration"])
 app.include_router(search_router, prefix="/api/search", tags=["Global Search"], dependencies=authenticated)
 app.include_router(notification_router, prefix="/api", tags=["Notifications"], dependencies=authenticated)
+app.include_router(notification_ws_router, tags=["Notifications"])
 app.include_router(log_router, prefix="/api", tags=["Logs"])
 app.include_router(observability_router, prefix="/api", tags=["Observability"])
 app.include_router(graph_router, prefix="/api", tags=["Microsoft Graph"], dependencies=authenticated)
