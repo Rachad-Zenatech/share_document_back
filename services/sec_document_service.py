@@ -16,8 +16,11 @@ import uuid
 from typing import Any
 from uuid import UUID
 
+import asyncpg
+
 from postgresql_db.database import get_pool
 from postgresql_db.sec_filing_schema import ensure_schema
+from services.sec_guest_service import sync_guest_invite
 
 
 class DocumentNotFound(Exception):
@@ -321,25 +324,43 @@ async def save_proposal(user_id: UUID, proposal_id: str, document_id: str, propo
         )
         if moved:
             raise DocumentForbidden("a proposal cannot be moved to another document")
-        await conn.execute(
-            """
-            INSERT INTO sec_document_proposals (id, document_id, status, author_email, data, created_by, updated_by)
-            VALUES ($1, $2, $3, $4, $5::jsonb, $6, $6)
-            ON CONFLICT (id) DO UPDATE
-            SET status = EXCLUDED.status,
-                author_email = EXCLUDED.author_email,
-                data = EXCLUDED.data,
-                updated_at = now(),
-                updated_by = EXCLUDED.updated_by
-            """,
-            proposal_id,
-            document_id,
-            data.get("status") or "draft",
-            author_email,
-            json.dumps(data),
-            user_id,
-        )
+        async with conn.transaction():
+            await conn.execute(
+                """
+                INSERT INTO sec_document_proposals (id, document_id, status, author_email, data, created_by, updated_by)
+                VALUES ($1, $2, $3, $4, $5::jsonb, $6, $6)
+                ON CONFLICT (id) DO UPDATE
+                SET status = EXCLUDED.status,
+                    author_email = EXCLUDED.author_email,
+                    data = EXCLUDED.data,
+                    updated_at = now(),
+                    updated_by = EXCLUDED.updated_by
+                """,
+                proposal_id,
+                document_id,
+                data.get("status") or "draft",
+                author_email,
+                json.dumps(data),
+                user_id,
+            )
+            try:
+                await sync_guest_invite(conn, proposal_id, data.get("inviteToken"), user_id)
+            except asyncpg.UniqueViolationError as exc:
+                raise DocumentForbidden("this invite token belongs to another proposal") from exc
     return True
+
+
+async def check_document_access(user_id: UUID, document_id: str) -> None:
+    """Raise DocumentForbidden unless the user may open the document. Documents that
+    were never saved to the server (older browser-only ones) are not checked."""
+    await ensure_schema()
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        email, is_super = await _actor(conn, user_id)
+        try:
+            await _check_access(conn, user_id, email, is_super, document_id)
+        except DocumentNotFound:
+            return
 
 
 # --------------------------------------------------------------------------- versions

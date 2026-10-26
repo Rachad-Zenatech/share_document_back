@@ -279,6 +279,12 @@ class SecProposalSavePayload(BaseModel):
     proposal: dict[str, Any]
 
 
+class SecGuestProposalSavePayload(BaseModel):
+    """A guest contributor's proposal; only its editable fields are applied."""
+
+    proposal: dict[str, Any]
+
+
 class SecVersionSavePayload(BaseModel):
     snapshot: dict[str, Any]
 

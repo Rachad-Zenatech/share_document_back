@@ -210,6 +210,19 @@ CREATE TABLE IF NOT EXISTS sec_document_versions (
 
 CREATE INDEX IF NOT EXISTS sec_document_versions_doc_idx ON sec_document_versions (document_id, created_at);
 
+-- No-login guest access to exactly one change proposal (external contributors).
+-- Registered when a signed-in user with access to the document saves the proposal
+-- with a guest invite token; one live token per proposal, so a new token revokes
+-- the old link. Looked up by SHA-256 hash; expiry is set here, never by the client.
+CREATE TABLE IF NOT EXISTS sec_proposal_guest_invites (
+    proposal_id VARCHAR PRIMARY KEY REFERENCES sec_document_proposals(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID REFERENCES users(id),
+    last_used_at TIMESTAMPTZ
+);
+
 
 """
 

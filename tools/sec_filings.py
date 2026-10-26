@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
 from models.sec_filing_model import (
     AttachedSpreadsheetPayload,
@@ -16,6 +16,7 @@ from models.sec_filing_model import (
     SecDocumentImportPayload,
     SecDocumentSavePayload,
     SecDocumentWorkflowAssignPayload,
+    SecGuestProposalSavePayload,
     SecProposalSavePayload,
     SecVersionSavePayload,
     SecWorkflow,
@@ -31,6 +32,7 @@ from services.sec_document_service import (
     DocumentForbidden,
     DocumentNotFound,
     add_version,
+    check_document_access,
     delete_document,
     get_document,
     get_proposal,
@@ -40,6 +42,13 @@ from services.sec_document_service import (
     list_versions,
     save_document,
     save_proposal,
+)
+from services.sec_guest_service import (
+    GuestEditRejected,
+    GuestInviteInvalid,
+    GuestProposalLocked,
+    get_guest_session,
+    save_guest_proposal,
 )
 from services.sec_filing_signature_service import (
     cleanup_expired_envelopes,
@@ -275,6 +284,41 @@ async def add_sec_document_version(
 
 
 # -----------------------------------------------------------------------------
+# Guest Contributors (external, no login)
+# -----------------------------------------------------------------------------
+# Authenticated only by the invite token in X-Invite-Token, which scopes the caller
+# to a single proposal (see services/sec_guest_service.py). Errors are 404/409/422,
+# never 401, so a guest is not sent to the login page.
+
+_INVALID_INVITE = "This invite link is invalid or has expired. Ask the document owner for a new link."
+
+
+@router.get("/guest/session")
+async def get_guest_session_endpoint(x_invite_token: str | None = Header(default=None)):
+    try:
+        return await get_guest_session(x_invite_token)
+    except GuestInviteInvalid as exc:
+        raise HTTPException(status_code=404, detail=_INVALID_INVITE) from exc
+
+
+@router.put("/guest/proposal")
+async def save_guest_proposal_endpoint(
+    payload: SecGuestProposalSavePayload,
+    x_invite_token: str | None = Header(default=None),
+):
+    try:
+        return {"proposal": await save_guest_proposal(x_invite_token, payload.proposal)}
+    except GuestInviteInvalid as exc:
+        raise HTTPException(status_code=404, detail=_INVALID_INVITE) from exc
+    except GuestProposalLocked as exc:
+        raise HTTPException(
+            status_code=409, detail="These changes were already submitted and can no longer be edited."
+        ) from exc
+    except GuestEditRejected as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+# -----------------------------------------------------------------------------
 # Reporting Workflows & Document Workflow Assignments
 # -----------------------------------------------------------------------------
 
@@ -451,8 +495,19 @@ async def delete_mobile_signature_envelope(
 # Dynamic Attached Spreadsheets & Variable Sync
 # -----------------------------------------------------------------------------
 
+async def _require_spreadsheet_access(document_id: str, user_id: UUID) -> None:
+    try:
+        await check_document_access(user_id, document_id)
+    except DocumentForbidden as exc:
+        raise _document_error(exc) from exc
+
+
 @router.get("/documents/{document_id}/spreadsheet")
-async def get_attached_spreadsheet_endpoint(document_id: str):
+async def get_attached_spreadsheet_endpoint(
+    document_id: str,
+    user_id: UUID = Depends(get_current_user_id_dependency),
+):
+    await _require_spreadsheet_access(document_id, user_id)
     # `spreadsheet` is null when no workbook is linked, so callers can tell
     # "not linked" apart from an empty sheet.
     sheet = await get_document_spreadsheet(document_id)
@@ -460,7 +515,11 @@ async def get_attached_spreadsheet_endpoint(document_id: str):
 
 
 @router.delete("/documents/{document_id}/spreadsheet")
-async def delete_attached_spreadsheet_endpoint(document_id: str):
+async def delete_attached_spreadsheet_endpoint(
+    document_id: str,
+    user_id: UUID = Depends(get_current_user_id_dependency),
+):
+    await _require_spreadsheet_access(document_id, user_id)
     deleted = await delete_document_spreadsheet(document_id)
     return {"documentId": document_id, "deleted": deleted}
 
@@ -469,7 +528,9 @@ async def delete_attached_spreadsheet_endpoint(document_id: str):
 async def save_attached_spreadsheet_endpoint(
     document_id: str,
     payload: AttachedSpreadsheetPayload,
+    user_id: UUID = Depends(get_current_user_id_dependency),
 ):
+    await _require_spreadsheet_access(document_id, user_id)
     data = payload.model_dump(by_alias=False, exclude_none=True)
     saved = await save_document_spreadsheet(document_id, data)
     return saved
@@ -479,6 +540,8 @@ async def save_attached_spreadsheet_endpoint(
 async def update_spreadsheet_cell_endpoint(
     document_id: str,
     payload: UpdateSpreadsheetCellPayload,
+    user_id: UUID = Depends(get_current_user_id_dependency),
 ):
+    await _require_spreadsheet_access(document_id, user_id)
     updated = await update_spreadsheet_cell(document_id, payload.cell_ref, payload.value)
     return updated
