@@ -1,12 +1,14 @@
 # Antigravity Project Instructions
 
-Use these rules when changing the enterprise backend or its internal portal.
+Use these rules when changing the share-document backend (SEC filing documents, proposals, spreadsheets, notifications) or its frontend.
 
 ## Workspace & Stack
 
-- Backend: `internal_portal_administration_backend` (`server.py`, `tools/`, `services/`, `models/`, `postgresql_db/`)
+- Backend: `share_document_back` (`server.py`, `tools/`, `services/`, `models/`, `postgresql_db/`)
+- Frontend: `../share_document_front` (React + Vite + TypeScript)
 - FastAPI routers belong in `tools/`, async business and database logic in `services/`, Pydantic schemas in `models/`, and database helpers in `postgresql_db/database.py`.
 - Keep backend request and response contracts synchronized with frontend `src/types`.
+- `CLAUDE.md`, `AGENTS.md` and `GEMINI.md` hold the same rules for other agents; keep them consistent when changing one.
 
 ## Core Architecture & Services
 
@@ -40,6 +42,22 @@ Use these rules when changing the enterprise backend or its internal portal.
   ```
 - Use asyncpg placeholders `$1, $2, ...`. Never interpolate user-supplied values into SQL.
 - Use transactions for related writes, imports, saves, and other atomic operations.
+
+## Real-Time Notifications
+
+- Notifications reach the browser over the WebSocket at `/ws/notifications` (`tools/notification_ws_router.py`); CloudFront cuts streaming HTTP (SSE) responses after about 60 seconds.
+- Event-driven only: wait on the broadcaster queue (`await asyncio.wait_for(queue.get(), timeout=...)`) with a lightweight ping on timeout. **Never** poll the database or loop `check -> sleep -> check` inside a stream.
+
+## Access Rules
+
+- Document endpoints check access per document (`services/sec_document_service.py`): owner, invitees, proposal authors, super admins.
+- Guest contributors (no login) are limited to one proposal by their invite token (`services/sec_guest_service.py`). Never widen what a guest token can read or write.
+- Never invent email addresses for invitees or proposal authors: an address grants access to the whole document.
+
+## AI (Gemini)
+
+- Call Gemini through `services/gemini_service.py` (`generate_content_with_fallback`): it rotates through the text models in `GEMINI_AVAILABLE_MODELS` when one errors, is over quota or does not answer within `GEMINI_TIMEOUT_SECONDS`.
+- Check AI output against the source before using it, as `services/sec_pdf_import_service.py` does for PDF import (words and figures must be kept; invented figures are rejected).
 
 ## Validation & Cleanup
 
