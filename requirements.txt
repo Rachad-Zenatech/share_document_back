@@ -28,6 +28,13 @@ python-dotenv>=1.0.0
 google-genai>=2.8.0
 motor>=3.7.0
 
+# PDF import: text layer, scanned-page OCR (needs the tesseract binary, see Dockerfile)
+pymupdf>=1.28.2
+pypdf>=5.0.0
+pytesseract>=0.3.13
+pillow>=11.0.0
+python-multipart>=0.0.9
+
 # Messaging, Event Bus & Microservice Presence
 paho-mqtt>=2.1.0
 aio-pika>=9.5.4

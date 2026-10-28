@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, UploadFile
 
 from models.sec_filing_model import (
     AttachedSpreadsheetPayload,
@@ -43,6 +43,7 @@ from services.sec_document_service import (
     save_document,
     save_proposal,
 )
+from services.sec_pdf_import_service import MAX_PDF_BYTES, get_pdf_import, start_pdf_import
 from services.sec_guest_service import (
     GuestEditRejected,
     GuestInviteInvalid,
@@ -281,6 +282,34 @@ async def add_sec_document_version(
         return {"saved": await add_version(user_id, document_id, payload.snapshot)}
     except (DocumentNotFound, DocumentForbidden) as exc:
         raise _document_error(exc) from exc
+
+
+# -----------------------------------------------------------------------------
+# PDF Import (OCR + Gemini, converted to document blocks)
+# -----------------------------------------------------------------------------
+# Runs as a background job: a long filing takes longer than CloudFront lets one
+# request run. The client checks the job until it is done.
+
+
+@router.post("/import/pdf", status_code=202)
+async def start_pdf_import_endpoint(
+    file: UploadFile = File(...),
+    user_id: UUID = Depends(get_current_user_id_dependency),
+):
+    data = await file.read(MAX_PDF_BYTES + 1)
+    if len(data) > MAX_PDF_BYTES:
+        raise HTTPException(status_code=413, detail=f"The PDF is larger than {MAX_PDF_BYTES // (1024 * 1024)} MB.")
+    if not data.startswith(b"%PDF"):
+        raise HTTPException(status_code=422, detail="This file is not a PDF.")
+    return {"jobId": start_pdf_import(user_id, data, file.filename or "document.pdf")}
+
+
+@router.get("/import/pdf/{job_id}")
+async def get_pdf_import_endpoint(job_id: str, user_id: UUID = Depends(get_current_user_id_dependency)):
+    job = get_pdf_import(user_id, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Import not found or expired.")
+    return job
 
 
 # -----------------------------------------------------------------------------

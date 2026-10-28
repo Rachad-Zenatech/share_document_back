@@ -9,8 +9,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# All Python dependencies ship prebuilt manylinux wheels, so no compiler or
-# system libraries are needed on top of the slim base image.
+# All Python dependencies ship prebuilt manylinux wheels, so no compiler is needed.
+# Tesseract is the OCR engine PDF import uses for scanned (image-only) pages.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
