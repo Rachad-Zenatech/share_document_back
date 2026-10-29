@@ -20,7 +20,7 @@ from services.shared.auth_service import (
 )
 from services.shared.cache_service import master_data_cache
 from services.microsoft_graph.graph_service import fetch_me_profile
-from tools.rbac_router import get_current_user_id
+from tools.shared.rbac_router import get_current_user_id
 from services.shared.rbac_service import log_login_activity
 from postgresql_db.database import get_pool
 from uuid import UUID

@@ -35,15 +35,15 @@ from services.shared.auth_service import (
 )
 
 # FastAPI routers
-from tools.search import router as search_router
-from tools.rbac_router import router as rbac_router, get_current_user_id
-from tools.auth_router import router as auth_router
-from tools.notification_router import notification_router
-from tools.notification_ws_router import notification_ws_router
-from tools.observability import router as observability_router
-from tools.log_router import router as log_router
-from tools.graph_router import router as graph_router
-from tools.sec_filings import router as sec_filings_router
+from tools.shared.search import router as search_router
+from tools.shared.rbac_router import router as rbac_router, get_current_user_id
+from tools.shared.auth_router import router as auth_router
+from tools.notifications.notification_router import notification_router
+from tools.notifications.notification_ws_router import notification_ws_router
+from tools.shared.observability import router as observability_router
+from tools.shared.log_router import router as log_router
+from tools.microsoft_graph.graph_router import router as graph_router
+from tools.sec_filings.sec_filings import router as sec_filings_router
 from services.sec_filings.sec_filing_template_service import bootstrap_sec_filing_table_templates
 
 # MCP tools & AI functions

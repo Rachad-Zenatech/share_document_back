@@ -1,7 +1,7 @@
 """Microsoft Graph API client for employee profile sync.
 
 Reuses the existing Microsoft Entra App Registration (MICROSOFT_CLIENT_ID /
-MICROSOFT_CLIENT_SECRET / MICROSOFT_TENANT_ID, see tools/auth_router.py) —
+MICROSOFT_CLIENT_SECRET / MICROSOFT_TENANT_ID, see tools/shared/auth_router.py) —
 no separate app registration or login flow is introduced here.
 
 Two acquisition paths are used:
