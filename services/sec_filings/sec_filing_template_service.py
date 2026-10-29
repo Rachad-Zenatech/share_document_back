@@ -13,7 +13,7 @@ from typing import Any
 from uuid import UUID
 
 from postgresql_db.database import fetch_all, fetch_one, get_pool
-from services.cache_service import master_data_cache, emit_cache_invalidation
+from services.shared.cache_service import master_data_cache, emit_cache_invalidation
 
 _COLUMNS = """
     id, template_key, name, description, badge, icon, color, sort_order,

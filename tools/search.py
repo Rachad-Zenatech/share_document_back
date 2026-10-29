@@ -4,7 +4,7 @@ from typing import List, Optional, Any, Dict
 from pydantic import BaseModel
 from postgresql_db.database import fetch_all
 from uuid import UUID
-from services.auth_service import get_current_user_id_dependency, get_my_permissions
+from services.shared.auth_service import get_current_user_id_dependency, get_my_permissions
 
 router = APIRouter()
 

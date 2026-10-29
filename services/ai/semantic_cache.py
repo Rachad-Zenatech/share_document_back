@@ -29,7 +29,7 @@ from google import genai
 from google.genai import types
 
 from postgresql_db.database import get_pool
-from services.ai_observability import span
+from services.ai.ai_observability import span
 
 logger = logging.getLogger(__name__)
 

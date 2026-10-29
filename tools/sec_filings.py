@@ -26,8 +26,8 @@ from models.sec_filing_model import (
     SecWorkflowUpdate,
     UpdateSpreadsheetCellPayload,
 )
-from services.auth_service import get_current_user_id_dependency, require_permission
-from services.sec_document_service import (
+from services.shared.auth_service import get_current_user_id_dependency, require_permission
+from services.sec_filings.sec_document_service import (
     DocumentConflict,
     DocumentForbidden,
     DocumentNotFound,
@@ -43,35 +43,35 @@ from services.sec_document_service import (
     save_document,
     save_proposal,
 )
-from services.sec_pdf_import_service import MAX_PDF_BYTES, get_pdf_import, start_pdf_import
-from services.sec_guest_service import (
+from services.sec_filings.sec_pdf_import_service import MAX_PDF_BYTES, get_pdf_import, start_pdf_import
+from services.sec_filings.sec_guest_service import (
     GuestEditRejected,
     GuestInviteInvalid,
     GuestProposalLocked,
     get_guest_session,
     save_guest_proposal,
 )
-from services.sec_filing_signature_service import (
+from services.sec_filings.sec_filing_signature_service import (
     cleanup_expired_envelopes,
     complete_envelope,
     delete_envelope,
     dispatch_envelope,
     get_envelope,
 )
-from services.sec_filing_spreadsheet_service import (
+from services.sec_filings.sec_filing_spreadsheet_service import (
     delete_document_spreadsheet,
     get_document_spreadsheet,
     save_document_spreadsheet,
     update_spreadsheet_cell,
 )
-from services.sec_filing_template_service import (
+from services.sec_filings.sec_filing_template_service import (
     create_table_template,
     delete_table_template,
     get_table_template,
     list_table_templates,
     update_table_template,
 )
-from services.sec_filing_workflow_service import (
+from services.sec_filings.sec_filing_workflow_service import (
     assign_document_workflow,
     create_workflow,
     delete_workflow,
@@ -316,7 +316,7 @@ async def get_pdf_import_endpoint(job_id: str, user_id: UUID = Depends(get_curre
 # Guest Contributors (external, no login)
 # -----------------------------------------------------------------------------
 # Authenticated only by the invite token in X-Invite-Token, which scopes the caller
-# to a single proposal (see services/sec_guest_service.py). Errors are 404/409/422,
+# to a single proposal (see services/sec_filings/sec_guest_service.py). Errors are 404/409/422,
 # never 401, so a guest is not sent to the login page.
 
 _INVALID_INVITE = "This invite link is invalid or has expired. Ask the document owner for a new link."

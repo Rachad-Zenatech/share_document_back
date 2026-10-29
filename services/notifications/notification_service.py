@@ -55,7 +55,7 @@ async def create_notification(data: NotificationCreate) -> NotificationResponse:
 
     # Publish notification event to MQTT bus for ecosystem integration
     try:
-        from services.mqtt_presence import publish_share_document_event
+        from services.notifications.mqtt_presence import publish_share_document_event
         publish_share_document_event(
             f"share-document/notifications/{data.user_id}",
             {
@@ -76,7 +76,7 @@ async def create_notification(data: NotificationCreate) -> NotificationResponse:
 
     # Publish persistent notification event to RabbitMQ events exchange
     try:
-        from services.rabbitmq_service import rabbitmq_manager
+        from services.notifications.rabbitmq_service import rabbitmq_manager
         asyncio.create_task(
             rabbitmq_manager.publish_share_document_event(
                 "notification.created",
@@ -122,7 +122,7 @@ def broadcast_workflow_sync(entity_type: str = "SecFiling", entity_id: str = "")
     broadcaster.broadcast(sync_event)
 
     try:
-        from services.mqtt_presence import publish_share_document_event
+        from services.notifications.mqtt_presence import publish_share_document_event
         publish_share_document_event(
             "share-document/workflow-sync",
             {
@@ -135,7 +135,7 @@ def broadcast_workflow_sync(entity_type: str = "SecFiling", entity_id: str = "")
         pass
 
     try:
-        from services.rabbitmq_service import rabbitmq_manager
+        from services.notifications.rabbitmq_service import rabbitmq_manager
         asyncio.create_task(
             rabbitmq_manager.publish_share_document_event(
                 "workflow.sync",

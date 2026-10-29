@@ -3,12 +3,12 @@
 Runs as a background asyncio task started from server.py's lifespan,
 mirroring the existing MCP-tool-sync background task there. This job only
 UPDATES users that already exist locally, matched by microsoft_object_id —
-user creation stays login-driven (services/auth_service.py::upsertMicrosoftUser),
+user creation stays login-driven (services/shared/auth_service.py::upsertMicrosoftUser),
 so a stale/incomplete Graph directory can never fabricate a local account.
 
 Disabled by default via GRAPH_BACKGROUND_SYNC_ENABLED until the tenant admin
 grants consent for the User.Read.All application permission this needs
-(see services/graph_service.py::get_app_only_token).
+(see services/microsoft_graph/graph_service.py::get_app_only_token).
 """
 
 import asyncio
@@ -18,7 +18,7 @@ import os
 from typing import Optional
 
 from postgresql_db.database import get_pool
-from services.graph_service import fetch_users_page, get_app_only_token
+from services.microsoft_graph.graph_service import fetch_users_page, get_app_only_token
 
 logger = logging.getLogger(__name__)
 

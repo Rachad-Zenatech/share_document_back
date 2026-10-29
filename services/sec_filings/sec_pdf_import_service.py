@@ -2,7 +2,7 @@
 
 Pipeline, per chunk of pages:
   1. Text layer: PyMuPDF for digital PDFs, Tesseract OCR for scanned ones
-     (services/pdf_extraction_service.py, shared with the admin portal).
+     (services/sec_filings/pdf_extraction_service.py, shared with the admin portal).
   2. Gemini reads the pages themselves (it does its own visual OCR) together with that
      text, and returns headings, paragraphs and financial tables as structured JSON.
   3. Verification: the AI output must keep the words and the figures of the chunk's text
@@ -36,8 +36,8 @@ import pymupdf
 from google.genai import types
 from pydantic import BaseModel, Field, ValidationError
 
-from services.gemini_service import generate_content_with_fallback, get_gemini_client
-from services.pdf_extraction_service import extract_document_layout
+from services.ai.gemini_service import generate_content_with_fallback, get_gemini_client
+from services.sec_filings.pdf_extraction_service import extract_document_layout
 
 logger = logging.getLogger(__name__)
 

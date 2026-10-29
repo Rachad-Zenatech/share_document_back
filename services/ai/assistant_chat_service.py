@@ -26,10 +26,10 @@ from uuid import UUID
 from google import genai
 from google.genai import types
 
-from services import ai_observability, model_router, semantic_cache
-from services.ai_guardrails import GuardResult, StreamRedactor, screen_input
-from services.ai_observability import span
-from services.model_router import is_rotatable_model_error
+from services.ai import ai_observability, model_router, semantic_cache
+from services.ai.ai_guardrails import GuardResult, StreamRedactor, screen_input
+from services.ai.ai_observability import span
+from services.ai.model_router import is_rotatable_model_error
 
 logger = logging.getLogger(__name__)
 

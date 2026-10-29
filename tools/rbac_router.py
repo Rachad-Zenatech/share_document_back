@@ -7,7 +7,7 @@ from models.rbac_model import (
     UserCreate, UserUpdate, UserBulkDelete, RoleCreate, RoleUpdate, RoleNavigationPermissionCreate, RoleMcpToolPermissionCreate,
     PermissionModule, RolePermissionGroupsUpdate
 )
-from services.rbac_service import (
+from services.shared.rbac_service import (
     get_all_users, create_user, update_user, delete_user, bulk_delete_users,
     get_all_roles, get_role_tree, create_role, update_role, delete_role,
     get_user_roles, set_user_roles,
@@ -16,7 +16,7 @@ from services.rbac_service import (
     get_login_activity_logs,
     get_permission_modules, get_role_permission_groups, update_role_permission_groups
 )
-from services.auth_service import (
+from services.shared.auth_service import (
     AUTH_COOKIE_NAME,
     get_current_user_id_dependency,
     get_my_permissions,
@@ -63,7 +63,7 @@ async def read_my_permissions(user_id: UUID = Depends(get_current_user_id)):
 # --- AUDIT LOGS ---
 @router.get("/audit-logs")
 async def list_audit_logs(user_id: UUID = Depends(require_permission("AUDIT_LOG_READ"))):
-    from services.rbac_service import get_audit_logs
+    from services.shared.rbac_service import get_audit_logs
     return await get_audit_logs()
 
 @router.get("/login-activities")

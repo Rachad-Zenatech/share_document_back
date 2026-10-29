@@ -9,7 +9,7 @@ Two acquisition paths are used:
     callback (scope already includes User.Read) is reused as-is to call
     GET /v1.0/me for the signed-in employee. No extra token round trip.
   - Application (client credentials): used only by the background sync
-    (services/graph_sync_job.py) to read other users' profiles via
+    (services/microsoft_graph/graph_sync_job.py) to read other users' profiles via
     GET /v1.0/users, which requires the User.Read.All application
     permission with admin consent. If that consent hasn't been granted,
     get_app_only_token() logs and returns None rather than raising, so the

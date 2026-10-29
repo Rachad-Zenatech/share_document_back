@@ -31,7 +31,7 @@ from uuid import UUID
 
 from postgresql_db.database import get_pool
 from postgresql_db.sec_filing_schema import ensure_schema
-from services.sec_filing_spreadsheet_service import get_document_spreadsheet
+from services.sec_filings.sec_filing_spreadsheet_service import get_document_spreadsheet
 
 GUEST_INVITE_TTL_DAYS = int(os.getenv("SEC_GUEST_INVITE_TTL_DAYS", "30"))
 
