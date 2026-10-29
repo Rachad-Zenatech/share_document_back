@@ -214,6 +214,6 @@ async def bootstrap_sec_filing_table_templates() -> None:
 
     Runs on application startup.
     """
-    from postgresql_db.sec_filing_schema import ensure_schema
+    from postgresql_db.schemas.sec_filing_schema import ensure_schema
 
     await ensure_schema()

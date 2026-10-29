@@ -108,10 +108,10 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/share_document
           DATABASE_SSL: false
         run: |
-          python -m postgresql_db.setup_pbac_schema
-          python -m postgresql_db.setup_graph_sync_schema
-          python -m postgresql_db.notifications_schema
-          python -m postgresql_db.sec_filing_schema
+          python -m postgresql_db.schemas.setup_pbac_schema
+          python -m postgresql_db.schemas.setup_graph_sync_schema
+          python -m postgresql_db.schemas.notifications_schema
+          python -m postgresql_db.schemas.sec_filing_schema
           if ls alembic/versions/*.py >/dev/null 2>&1; then
             alembic stamp head
             alembic upgrade head
@@ -188,10 +188,10 @@ jobs:
       - name: Run schema setup and Alembic migrations (if directly reachable)
         if: steps.db_check.outputs.reachable == 'true'
         run: |
-          python -m postgresql_db.setup_pbac_schema
-          python -m postgresql_db.setup_graph_sync_schema
-          python -m postgresql_db.notifications_schema
-          python -m postgresql_db.sec_filing_schema
+          python -m postgresql_db.schemas.setup_pbac_schema
+          python -m postgresql_db.schemas.setup_graph_sync_schema
+          python -m postgresql_db.schemas.notifications_schema
+          python -m postgresql_db.schemas.sec_filing_schema
           if ls alembic/versions/*.py >/dev/null 2>&1; then
             alembic upgrade head
           fi
@@ -485,10 +485,10 @@ jobs:
             echo '[*] Applying database schema and migrations on EC2...'
             sudo docker run --rm --env-file .env.production sec-filing-backend-api:latest sh -c '
               set -e
-              python -m postgresql_db.setup_pbac_schema
-              python -m postgresql_db.setup_graph_sync_schema
-              python -m postgresql_db.notifications_schema
-              python -m postgresql_db.sec_filing_schema
+              python -m postgresql_db.schemas.setup_pbac_schema
+              python -m postgresql_db.schemas.setup_graph_sync_schema
+              python -m postgresql_db.schemas.notifications_schema
+              python -m postgresql_db.schemas.sec_filing_schema
               if ls alembic/versions/*.py >/dev/null 2>&1; then alembic upgrade head; fi
             '
             if docker compose version &>/dev/null; then

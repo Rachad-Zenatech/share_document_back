@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, UploadFile
 
-from models.sec_filing_model import (
+from models.sec_filings.sec_filing_model import (
     AttachedSpreadsheetPayload,
     FinancialTableTemplate,
     FinancialTableTemplateCreate,

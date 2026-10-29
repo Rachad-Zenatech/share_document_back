@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from postgresql_db.database import create_pool, close_pool, get_pool
 
 # Load .env
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env'))
 
 
 async def setup():

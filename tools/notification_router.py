@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 import asyncio
 from typing import List, Dict
-from models.notification_model import NotificationResponse
+from models.notifications.notification_model import NotificationResponse
 from services.notifications.notification_service import get_recent_notifications, get_unread_count, mark_notification_as_read, mark_all_notifications_as_read, clear_read_notifications, clear_all_notifications, broadcaster
 
 from services.shared.auth_service import get_current_user_id_dependency

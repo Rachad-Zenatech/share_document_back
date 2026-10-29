@@ -2,7 +2,7 @@ from typing import List
 import json
 import asyncio
 from postgresql_db.database import execute, fetch_all, fetch_one
-from models.notification_model import NotificationCreate, NotificationResponse
+from models.notifications.notification_model import NotificationCreate, NotificationResponse
 
 class NotificationBroadcaster:
     def __init__(self):

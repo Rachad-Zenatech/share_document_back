@@ -19,7 +19,7 @@ from uuid import UUID
 import asyncpg
 
 from postgresql_db.database import get_pool
-from postgresql_db.sec_filing_schema import ensure_schema
+from postgresql_db.schemas.sec_filing_schema import ensure_schema
 from services.sec_filings.sec_guest_service import sync_guest_invite
 
 

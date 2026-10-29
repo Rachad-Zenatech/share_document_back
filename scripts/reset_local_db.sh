@@ -67,20 +67,20 @@ fi
 
 echo "?? [Disposable DB] Applying database schemas & master data..."
 if [ -f "venv/bin/python" ]; then
-  venv/bin/python -m postgresql_db.setup_pbac_schema
-  venv/bin/python -m postgresql_db.sec_filing_schema
-  venv/bin/python -m postgresql_db.setup_graph_sync_schema
-  venv/bin/python -m postgresql_db.notifications_schema
+  venv/bin/python -m postgresql_db.schemas.setup_pbac_schema
+  venv/bin/python -m postgresql_db.schemas.sec_filing_schema
+  venv/bin/python -m postgresql_db.schemas.setup_graph_sync_schema
+  venv/bin/python -m postgresql_db.schemas.notifications_schema
 elif command -v python3 &> /dev/null; then
-  python3 -m postgresql_db.setup_pbac_schema
-  python3 -m postgresql_db.sec_filing_schema
-  python3 -m postgresql_db.setup_graph_sync_schema
-  python3 -m postgresql_db.notifications_schema
+  python3 -m postgresql_db.schemas.setup_pbac_schema
+  python3 -m postgresql_db.schemas.sec_filing_schema
+  python3 -m postgresql_db.schemas.setup_graph_sync_schema
+  python3 -m postgresql_db.schemas.notifications_schema
 elif command -v python &> /dev/null; then
-  python -m postgresql_db.setup_pbac_schema
-  python -m postgresql_db.sec_filing_schema
-  python -m postgresql_db.setup_graph_sync_schema
-  python -m postgresql_db.notifications_schema
+  python -m postgresql_db.schemas.setup_pbac_schema
+  python -m postgresql_db.schemas.sec_filing_schema
+  python -m postgresql_db.schemas.setup_graph_sync_schema
+  python -m postgresql_db.schemas.notifications_schema
 else
   echo "??  [Disposable DB] Python not found in PATH or venv."
 fi

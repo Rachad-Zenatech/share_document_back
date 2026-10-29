@@ -3,7 +3,7 @@ from typing import Optional, List
 from uuid import UUID
 from postgresql_db.database import get_pool, fetch_all, fetch_one
 from services.shared.cache_service import config_cache, emit_cache_invalidation
-from models.rbac_model import (
+from models.shared.rbac_model import (
     UserCreate, UserUpdate, RoleCreate, RoleUpdate,
     RoleNavigationPermissionCreate, RoleMcpToolPermissionCreate
 )

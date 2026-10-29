@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import uuid
 from postgresql_db.database import create_pool, close_pool, get_pool
 
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env'))
 
 async def setup():
     await create_pool()

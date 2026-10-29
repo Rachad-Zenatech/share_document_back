@@ -49,10 +49,10 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/share_document
           DATABASE_SSL: false
         run: |
-          python -m postgresql_db.setup_pbac_schema
-          python -m postgresql_db.setup_graph_sync_schema
-          python -m postgresql_db.notifications_schema
-          python -m postgresql_db.sec_filing_schema
+          python -m postgresql_db.schemas.setup_pbac_schema
+          python -m postgresql_db.schemas.setup_graph_sync_schema
+          python -m postgresql_db.schemas.notifications_schema
+          python -m postgresql_db.schemas.sec_filing_schema
           if ls alembic/versions/*.py >/dev/null 2>&1; then
             alembic stamp head
             alembic upgrade head

@@ -12,7 +12,7 @@ from typing import Any
 from uuid import UUID
 
 from postgresql_db.database import fetch_all, fetch_one, get_pool
-from postgresql_db.sec_filing_schema import ensure_schema
+from postgresql_db.schemas.sec_filing_schema import ensure_schema
 from services.shared.cache_service import emit_cache_invalidation, master_data_cache
 
 _LIST_CACHE_KEY = "master_data:sec_workflows"

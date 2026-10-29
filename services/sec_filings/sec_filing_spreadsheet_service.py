@@ -6,7 +6,7 @@ from typing import Any, Optional
 from uuid import UUID
 
 from postgresql_db.database import get_pool
-from postgresql_db.sec_filing_schema import ensure_schema
+from postgresql_db.schemas.sec_filing_schema import ensure_schema
 
 
 _SPREADSHEET_COLUMNS = (

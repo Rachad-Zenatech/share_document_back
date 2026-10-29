@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from uuid import UUID
 
-from models.rbac_model import (
+from models.shared.rbac_model import (
     UserCreate, UserUpdate, UserBulkDelete, RoleCreate, RoleUpdate, RoleNavigationPermissionCreate, RoleMcpToolPermissionCreate,
     PermissionModule, RolePermissionGroupsUpdate
 )
