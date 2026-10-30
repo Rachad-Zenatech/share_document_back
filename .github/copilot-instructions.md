@@ -1,67 +1,81 @@
-# GitHub Copilot Instructions
+# Agent Guidelines & Repository Rules
 
-- Use FastAPI routers in `tools/`, services in `services/`, models in `models/`, and database helpers in `postgresql_db/database.py`.
-- Synchronous database pool access: `pool = get_pool()`.
-- Use the caching layer (`services.shared.cache_service`) for high-frequency queries and emit invalidation events on data modification.
-- Never write SQL queries inside loops; batch multi-row operations using PostgreSQL `UNNEST`.
-- Validate code with `wsl python3 -m py_compile <files>`.
+This document defines the execution guidelines for all AI agents working on this codebase.
+Architectural standards are in `.agents/rules/` and loaded only when relevant.
 
-<!-- project-structure:start -->
-## Project Structure
+---
 
-```text
-server.py             # FastAPI app: startup/shutdown, middleware, router registration
-tools/                # HTTP routers (FastAPI APIRouter), grouped by feature
-  shared/             # Auth, roles and permissions, logs, health/observability and search
-    auth_router.py, log_router.py, observability.py
-    rbac_router.py, search.py
-  notifications/      # Notifications and messaging (SSE, RabbitMQ, MQTT, cross-portal events)
-    notification_router.py, notification_ws_router.py
-  microsoft_graph/    # Microsoft Graph (Entra users/org) client and background sync
-    graph_router.py
-  sec_filings/        # SEC filing documents: templates, workflow, signatures, spreadsheets, PDF import, guest access
-    sec_filings.py
-services/             # Business logic, grouped by feature
-  shared/             # Used by several features: auth, RBAC, caching, logging, audit, security
-    audit_service.py, auth_service.py, cache_service.py
-    logging_service.py, rbac_service.py, service_security_policy.py
-  ai/                 # Gemini clients, assistant chat, guardrails, tracing, semantic cache, usage limits
-    ai_guardrails.py, ai_observability.py, ai_usage_service.py
-    assistant_chat_service.py, gemini_service.py, model_router.py
-    semantic_cache.py
-  notifications/      # Notifications and messaging (SSE, RabbitMQ, MQTT, cross-portal events)
-    mqtt_presence.py, notification_service.py, rabbitmq_service.py
-  microsoft_graph/    # Microsoft Graph (Entra users/org) client and background sync
-    graph_service.py, graph_sync_job.py
-  sec_filings/        # SEC filing documents: templates, workflow, signatures, spreadsheets, PDF import, guest access
-    pdf_extraction_service.py, sec_document_service.py, sec_filing_signature_service.py
-    sec_filing_spreadsheet_service.py, sec_filing_template_service.py, sec_filing_workflow_service.py
-    sec_guest_service.py, sec_pdf_import_service.py
-models/               # Pydantic request/response models, grouped by feature
-  shared/             # Used by several features: users, roles, permissions, common types
-    rbac_model.py
-  notifications/      # Notifications and messaging (SSE, RabbitMQ, MQTT, cross-portal events)
-    notification_model.py
-  sec_filings/        # SEC filing documents: templates, workflow, signatures, spreadsheets, PDF import, guest access
-    sec_filing_model.py
-mcp_tools/            # MCP server: registry, middleware, prompts; tools grouped by feature
-    __init__.py (registry), middleware.py, prompts.py
-  shared/             # Tools for several features: permissions and account lookups
-    permissions.py
-postgresql_db/        # database.py (asyncpg pool), schema_metadata.py, table scripts in schemas/
-  schemas/            # setup_<feature>_schema.py: CREATE TABLE / migrations per feature
-    notifications_schema.py, sec_filing_schema.py, setup_ai_observability_schema.py
-    setup_graph_sync_schema.py, setup_pbac_schema.py
-alembic/              # Database migrations
-scripts/              # Dev/ops scripts (seed, reset, pull prod data)
-docs/                 # Longer design and integration docs
-```
+## 0. AI Agent Efficiency & Execution Budget
 
-### Where new code goes
+These rules apply to every AI coding agent working in this repository.
 
-* **New feature `<x>`:** logic in `services/<x>/`, endpoints in `tools/<x>/<x>_router.py`, models in `models/<x>/`, MCP tools in `mcp_tools/<x>/` (register them in `mcp_tools/__init__.py`), tables in `postgresql_db/schemas/setup_<x>_schema.py` (run with `python -m postgresql_db.schemas.setup_<x>_schema`).
-* **Code two or more features use** goes in the `shared/` folder of that layer (or `ai/`, `notifications/` when it fits there). A feature folder must not import another feature's folder; move the common piece to `shared/` instead.
-* **No loose files** at the root of `tools/`, `services/` or `models/`. In `mcp_tools/` only the registry (`__init__.py`), `middleware.py` and `prompts.py` sit at the root.
-* **Imports are absolute** (`from services.shared.auth_service import ...`). Feature folders are namespace packages with no `__init__.py`, like the rest of the repo.
-* **When you move a module,** update every import, `mock.patch("...")` string, `python -m` command (CI, scripts) and doc path, and fix any `__file__`-relative path in it (one more folder deep means one more `dirname`).
-<!-- project-structure:end -->
+### 0.1 Minimize Context Consumption
+
+- Do not scan the entire repository for individual assignments.
+- Use the existing Project Structure documentation to locate relevant files.
+- Read only files necessary to complete the requested task.
+- Do not repeatedly read files already inspected.
+- Do not load large documentation files unless directly relevant.
+- Prefer targeted searches over broad searches.
+- Do not summarize or re-analyze the entire codebase unnecessarily.
+
+### 0.2 Planning Restrictions
+
+- Use a short implementation plan.
+- Identify the specific files requiring changes.
+- Do not perform extensive architectural analysis for routine changes.
+- Do not propose unrelated improvements.
+- Do not create multiple alternative implementation plans unless requested.
+
+### 0.3 Agent and Subagent Restrictions
+
+- Do not spawn subagents by default.
+- Do not use parallel agents for routine assignments.
+- Only use subagents when explicitly authorized.
+- Do not delegate simple code changes or file inspections.
+
+### 0.4 Tool Execution Restrictions
+
+- Avoid repeated tool calls that retrieve identical information.
+- Do not repeatedly execute the same failed command without changing the underlying cause.
+- Do not run the entire test suite for small changes.
+- Do not repeatedly inspect unchanged files.
+- Do not perform unnecessary browser research.
+- Do not automatically expand the scope of an assignment.
+
+### 0.5 Implementation Scope
+
+- Modify only files necessary for the assignment.
+- Preserve existing architecture and coding conventions.
+- Do not refactor unrelated services.
+- Do not rename or reorganize existing modules without authorization.
+- Do not introduce additional dependencies without justification.
+- Ask before performing destructive database or infrastructure operations.
+
+### 0.6 Verification
+
+- Run targeted tests for modified functionality.
+- Run py_compile or tsc/build for touched files.
+- Run git diff --check.
+- Do not repeat successful verification commands.
+- Report pre-existing failures separately from new failures.
+
+### 0.7 Completion Rules
+
+Stop when:
+1. The requested implementation is complete.
+2. Relevant verification has been performed.
+3. Outstanding failures have been documented.
+
+Do not continue exploring, optimizing, refactoring or improving the application without authorization.
+
+### 0.8 Final Response
+
+Provide a concise report containing:
+- Files modified.
+- Changes implemented.
+- Tests executed.
+- Test results.
+- Outstanding issues.
+
+Do not produce lengthy explanations unless requested.
