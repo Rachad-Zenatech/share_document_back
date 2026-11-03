@@ -15,4 +15,4 @@ else
 fi
 
 PORT="${PORT:-8006}"
-exec $PYTHON_CMD -m uvicorn server:app --host 0.0.0.0 --port "$PORT" --reload
+exec $PYTHON_CMD -m uvicorn server:app --host 0.0.0.0 --port "$PORT" --reload --timeout-graceful-shutdown 2
