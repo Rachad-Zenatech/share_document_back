@@ -202,8 +202,9 @@ S3_BUCKET_NAME=zenatech-document-filings
 ```
 
 ### 4. Run Server
+Or directly via Uvicorn (with `--timeout-graceful-shutdown 2` to release port 8006 cleanly on exit):
 ```bash
-uvicorn server:app --host 0.0.0.0 --port 8006 --reload
+uvicorn server:app --host 0.0.0.0 --port 8006 --reload --timeout-graceful-shutdown 2
 ```
 API Documentation: `http://localhost:8006/docs`.
 
