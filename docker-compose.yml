@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:alpine
+    container_name: share_document_db_local
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: zenatech_share_document
+    ports:
+      - "3004:5432"
+    volumes:
+      - share_document_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d zenatech_share_document"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  share_document_postgres_data:
+
+
