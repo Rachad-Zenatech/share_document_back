@@ -1,7 +1,10 @@
 # Agent Guidelines & Repository Rules
 
-This document defines the execution guidelines for all AI agents working on this codebase.
-Architectural standards are in `.agents/rules/` and loaded only when relevant.
+This document defines the execution guidelines for all AI agents working on **Share Document Backend** (FastAPI/PostgreSQL backend).
+Architectural standards are in `.agents/rules/` and loaded only when relevant:
+
+- `.agents/rules/backend_architecture.md` - Backend Architecture Rules
+- `.agents/rules/project-guidelines.md` - Apply when modifying backend code: stack, routers/services/models layout, DB conventions, real-time/SSE rules and checks for this project.
 
 ---
 
@@ -17,6 +20,10 @@ These rules apply to every AI coding agent working in this repository.
 - Do not repeatedly read files already inspected.
 - Do not load large documentation files unless directly relevant.
 - Prefer targeted searches over broad searches.
+- Before opening a source file, search `.agents/code-map.md` for the file or function name (grep it; do not read the whole map) and read only the line range you need.
+- For orientation (directory layout, what each area does), read `.agents/project-index.md` first; it is a short overview. Use `.agents/code-map.md` only for symbol-level lookups.
+- Do not read files over 400 lines in full, and do not re-read a line range already read in the same task.
+- After adding, moving or renaming functions, regenerate the map: `node .agents/gen_code_map.mjs`.
 - Do not summarize or re-analyze the entire codebase unnecessarily.
 
 ### 0.2 Planning Restrictions
@@ -54,8 +61,8 @@ These rules apply to every AI coding agent working in this repository.
 
 ### 0.6 Verification
 
-- Run targeted tests for modified functionality.
-- Run py_compile or tsc/build for touched files.
+- Run targeted checks for modified endpoints.
+- Run `py_compile` for touched backend files.
 - Run git diff --check.
 - Do not repeat successful verification commands.
 - Report pre-existing failures separately from new failures.
