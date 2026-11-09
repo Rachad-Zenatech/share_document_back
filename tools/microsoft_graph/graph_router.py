@@ -8,7 +8,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
-from services.shared.auth_service import get_current_user_id_dependency
+from services.shared.auth.auth_service import get_current_user_id_dependency
 from services.microsoft_graph.graph_service import search_users
 
 router = APIRouter()

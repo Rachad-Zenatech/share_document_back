@@ -22,14 +22,14 @@ from pydantic import BaseModel, Field
 from starlette.middleware.sessions import SessionMiddleware
 
 from postgresql_db.database import close_pool, create_pool, fetch_one, get_pool
-from services.shared.logging_service import (
+from services.shared.core.logging_service import (
     asyncio_exception_handler,
     configure_logging,
     log_background_task_result,
     request_id_ctx,
 )
-from services.shared.cache_service import start_cache_invalidation_listener
-from services.shared.auth_service import (
+from services.shared.core.cache_service import start_cache_invalidation_listener
+from services.shared.auth.auth_service import (
     current_user_id_ctx,
     get_current_user_id_dependency,
 )
@@ -44,11 +44,12 @@ from tools.shared.observability import router as observability_router
 from tools.shared.log_router import router as log_router
 from tools.microsoft_graph.graph_router import router as graph_router
 from tools.sec_filings.sec_filings import router as sec_filings_router
-from services.sec_filings.sec_filing_template_service import bootstrap_sec_filing_table_templates
+from services.sec_filings.documents.sec_filing_template_service import bootstrap_sec_filing_table_templates
 
 # MCP tools & AI functions
 from mcp_tools import register_all as register_mcp_tools, sync_mcp_tools_to_vector_db
-from services.ai import ai_observability, assistant_chat_service
+from services.ai.observability import ai_observability
+from services.ai.core import assistant_chat_service
 from services.microsoft_graph.graph_sync_job import graph_sync_loop
 
 configure_logging()
@@ -216,7 +217,7 @@ async def ai_chat(req: ChatRequest, user_id: UUID = Depends(get_current_user_id)
         )
     if not prepared.blocked and prepared.cached_answer is None:
         # Counts toward the daily AI limits (429 with when it frees up).
-        from services.ai import ai_usage_service
+        from services.ai.observability import ai_usage_service
         await ai_usage_service.reserve("CHAT", user_id)
     try:
         async def stream_generator():
@@ -362,7 +363,7 @@ def _session_identity(request: Request) -> Optional[str]:
     if auth_header[:7].lower() == "bearer ":
         token = auth_header[7:].strip()
     if not token:
-        from services.shared.auth_service import AUTH_COOKIE_NAME
+        from services.shared.auth.auth_service import AUTH_COOKIE_NAME
         token = request.cookies.get(AUTH_COOKIE_NAME, "") or request.cookies.get("zenatech_access_token", "")
     if not token:
         return None

@@ -3,7 +3,7 @@
 Runs as a background asyncio task started from server.py's lifespan,
 mirroring the existing MCP-tool-sync background task there. This job only
 UPDATES users that already exist locally, matched by microsoft_object_id —
-user creation stays login-driven (services/shared/auth_service.py::upsertMicrosoftUser),
+user creation stays login-driven (services/shared/auth/auth_service.py::upsertMicrosoftUser),
 so a stale/incomplete Graph directory can never fabricate a local account.
 
 Disabled by default via GRAPH_BACKGROUND_SYNC_ENABLED until the tenant admin

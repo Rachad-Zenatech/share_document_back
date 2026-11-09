@@ -23,7 +23,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
-from services.shared.auth_service import AUTH_COOKIE_NAME, verify_token
+from services.shared.auth.auth_service import AUTH_COOKIE_NAME, verify_token
 from services.notifications.notification_service import broadcaster
 
 logger = logging.getLogger(__name__)

@@ -1,9 +1,9 @@
 import json
 from typing import Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
-from services.shared.auth_service import get_current_user_id_dependency
-from services.shared.audit_service import get_audit_logs
-from services.shared.auth_service import require_permission
+from services.shared.auth.auth_service import get_current_user_id_dependency
+from services.shared.core.audit_service import get_audit_logs
+from services.shared.auth.auth_service import require_permission
 
 router = APIRouter()
 
