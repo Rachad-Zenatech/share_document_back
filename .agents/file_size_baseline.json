@@ -1,5 +1,9 @@
 {
   "limit": 500,
+  "block_limits": {
+    "jsx_return": 80,
+    "py_function": 120
+  },
   "files": {
     "server.py": {
       "max_lines": 560,
@@ -24,6 +28,24 @@
     "tools/sec_filings/sec_filings.py": {
       "max_lines": 576,
       "reason": "Over the limit when the check was introduced; split it when you next work on it."
+    }
+  },
+  "blocks": {
+    "postgresql_db/schemas/setup_pbac_schema.py#setup": {
+      "max_lines": 368,
+      "kind": "py_function"
+    },
+    "services/shared/auth/auth_service.py#get_my_permissions": {
+      "max_lines": 123,
+      "kind": "py_function"
+    },
+    "services/shared/auth/auth_service.py#upsertMicrosoftUser": {
+      "max_lines": 139,
+      "kind": "py_function"
+    },
+    "tools/shared/search.py#global_search": {
+      "max_lines": 147,
+      "kind": "py_function"
     }
   }
 }
