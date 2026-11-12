@@ -1,0 +1,29 @@
+{
+  "limit": 500,
+  "files": {
+    "server.py": {
+      "max_lines": 560,
+      "reason": "Over the limit when the check was introduced; split it when you next work on it."
+    },
+    "services/sec_filings/documents/sec_document_service.py": {
+      "max_lines": 508,
+      "reason": "Over the limit when the check was introduced; split it when you next work on it."
+    },
+    "services/sec_filings/documents/sec_pdf_import_service.py": {
+      "max_lines": 518,
+      "reason": "Over the limit when the check was introduced; split it when you next work on it."
+    },
+    "services/shared/auth/auth_service.py": {
+      "max_lines": 661,
+      "reason": "Over the limit when the check was introduced; split it when you next work on it."
+    },
+    "services/shared/auth/rbac_service.py": {
+      "max_lines": 745,
+      "reason": "Over the limit when the check was introduced; split it when you next work on it."
+    },
+    "tools/sec_filings/sec_filings.py": {
+      "max_lines": 576,
+      "reason": "Over the limit when the check was introduced; split it when you next work on it."
+    }
+  }
+}
