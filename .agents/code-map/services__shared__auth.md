@@ -4,29 +4,33 @@
 
 Each symbol shows its start line (`L<n>`); read from there to the next symbol's line, not the whole file.
 
-## services/shared/auth/auth_service.py (662 lines) - auth service (shared auth)
-- `_update_last_activity_async` (def) L31
-- `create_access_token` (def) L41
-- `verify_token` (def) L54
-- `get_my_permissions` (def) L69
-- `user_can_access_page` (def) L193
-- `user_can_use_mcp_tool` (def) L208
-- `resolve_user_department` (def) L222 - Resolves user department matching the frontend logic:
-- `_is_cookie_secure` (def) L268
-- `set_access_token_cookie` (def) L274
-- `clear_access_token_cookie` (def) L287
-- `getCurrentUserFromMicrosoftClaims` (def) L305
-- `upsertMicrosoftUser` (def) L329 - Create or update the local user record for an authenticated Microsoft
-- `getUserRoles` (def) L469
-- `getUserNavigationPermissions` (def) L480
-- `getUserToolPermissions` (def) L495
-- `get_current_user_id_dependency` (def) L508
-- `requireNavigationAccess` (def) L589
-    - `dependency` (def) L590
-- `require_permission` (def) L604 - New API Permission Guard based on PBAC proposal.
-    - `dependency` (def) L609
-- `requireToolAccess` (def) L645
-    - `dependency` (def) L646
+## services/shared/auth/auth_service.py (461 lines) - auth service (shared auth)
+- `_update_last_activity_async` (def) L37
+- `create_access_token` (def) L47
+- `verify_token` (def) L60
+- `get_my_permissions` (def) L75
+- `user_can_access_page` (def) L199
+- `user_can_use_mcp_tool` (def) L214
+- `_is_cookie_secure` (def) L228
+- `set_access_token_cookie` (def) L234
+- `clear_access_token_cookie` (def) L247
+- `getUserRoles` (def) L265
+- `getUserNavigationPermissions` (def) L276
+- `getUserToolPermissions` (def) L291
+- `get_current_user_id_dependency` (def) L304
+- `requireNavigationAccess` (def) L388
+    - `dependency` (def) L389
+- `require_permission` (def) L403 - New API Permission Guard based on PBAC proposal.
+    - `dependency` (def) L408
+- `requireToolAccess` (def) L444
+    - `dependency` (def) L445
+
+## services/shared/auth/microsoft_auth_service.py (231 lines) - Microsoft Entra SSO claims parsing, user provisioning, and department resolution.
+- `resolve_user_department` (def) L10 - Resolves user department matching the frontend logic:
+- `getCurrentUserFromMicrosoftClaims` (def) L57 - Normalize Microsoft Entra ID token claims into oid, tid, sub, email, and name.
+- `_upsert_microsoft_user_row` (def) L83 - Find or insert the local user record for an authenticated Microsoft identity.
+- `_ensure_requester_role_assignment` (def) L168 - Ensure the REQUESTER role exists and is assigned when the user has no active role or was restored.
+- `upsertMicrosoftUser` (def) L216 - Create or update the local user record for an authenticated Microsoft
 
 ## services/shared/auth/rbac_service.py (746 lines) - Utility for audit logging
 - `log_audit` (def) L12
@@ -57,7 +61,7 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `get_role_permission_groups` (def) L724
 - `update_role_permission_groups` (def) L729
 
-## services/shared/auth/service_security_policy.py (241 lines) - Enterprise Application Security & Scope Authorization Policy Defines the strict Application-to-Application Access Matrix (Machine-to-Mach...
-- `require_application_scope` (def) L115 - FastAPI dependency that enforces Application-Level Scope authorization.
-    - `_scope_guard` (def) L120
-- `generate_scoped_outbound_token` (def) L212 - Generates a minimal, scope-restricted token for sending requests to another application.
+## services/shared/auth/service_security_policy.py (248 lines) - Enterprise Application Security & Scope Authorization Policy Defines the strict Application-to-Application Access Matrix (Machine-to-Mach...
+- `require_application_scope` (def) L122 - FastAPI dependency that enforces Application-Level Scope authorization.
+    - `_scope_guard` (def) L127
+- `generate_scoped_outbound_token` (def) L219 - Generates a minimal, scope-restricted token for sending requests to another application.

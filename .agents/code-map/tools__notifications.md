@@ -4,16 +4,22 @@
 
 Each symbol shows its start line (`L<n>`); read from there to the next symbol's line, not the whole file.
 
-## tools/notifications/notification_router.py (81 lines) - notification router (notifications)
-- `get_current_user_id` (def) L13
-- `api_get_notifications` (def) L17 [GET /notifications]
-- `api_get_unread_count` (def) L21 [GET /notifications/unread-count]
-- `api_mark_read` (def) L26 [PATCH /notifications/{notification_id}/read]
-- `api_mark_all_read` (def) L32 [PATCH /notifications/read-all]
-- `api_clear_read` (def) L37 [DELETE /notifications/read]
-- `api_clear_all` (def) L43 [DELETE /notifications/all]
-- `api_notification_stream` (def) L50 [GET /notifications/stream]
-    - `event_generator` (def) L52
+## tools/notifications/message_hub_router.py (57 lines) - Message Hub endpoints for the topbar servers dropdown (mounted at /api/message-hub, authenticated).
+- `message_hub_status` (def) L11 [GET /status] - Live RabbitMQ Message Hub snapshot for the topbar servers dropdown (same contract as the other portals).
+- `message_hub_test` (def) L19 [POST /test]
+- `message_hub_stream` (def) L26 [GET /stream] - SSE: an initial snapshot, then a new snapshot whenever any server's status changes.
+    - `_event_generator` (def) L32
+
+## tools/notifications/notification_router.py (84 lines) - notification router (notifications)
+- `get_current_user_id` (def) L16
+- `api_get_notifications` (def) L20 [GET /notifications]
+- `api_get_unread_count` (def) L24 [GET /notifications/unread-count]
+- `api_mark_read` (def) L29 [PATCH /notifications/{notification_id}/read]
+- `api_mark_all_read` (def) L35 [PATCH /notifications/read-all]
+- `api_clear_read` (def) L40 [DELETE /notifications/read]
+- `api_clear_all` (def) L46 [DELETE /notifications/all]
+- `api_notification_stream` (def) L53 [GET /notifications/stream]
+    - `event_generator` (def) L55
 
 ## tools/notifications/notification_ws_router.py (120 lines) - Notification WebSocket Router Provides: - WebSocket /ws/notifications: Real-time notification delivery.
 - `_resolve_user_id` (def) L37 - Resolve the authenticated user from the handshake.

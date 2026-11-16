@@ -37,30 +37,68 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `clear_read_notifications` (def) L198
 - `clear_all_notifications` (def) L206
 
-## services/notifications/rabbitmq_service.py (403 lines) - RabbitMQ Service & Topology Manager for Share Document Portal.
-- `_sanitize_amqp_url` (def) L40 - Mask password from AMQP URLs to prevent logging credentials.
-- `get_rabbitmq_host` (def) L47
-- `get_rabbitmq_port` (def) L51
-- `get_rabbitmq_user` (def) L58
-- `get_rabbitmq_password` (def) L67
-- `get_rabbitmq_url` (def) L76
-- `get_commands_exchange` (def) L87
-- `get_events_exchange` (def) L91
-- `get_dlx_exchange` (def) L95
-- `get_prefetch_count` (def) L99
-- `InMemoryMessageBroker` (class) L118 - In-memory fallback & mock broker for unit testing and offline development
-    - `__init__` (def) L123
-    - `get_queue` (def) L127
-    - `publish` (def) L132
-    - `clear` (def) L151
-- `RabbitMQManager` (class) L159
-    - `__init__` (def) L160
-    - `is_connected` (def) L173
-    - `using_fallback` (def) L177
-    - `connect` (def) L180 - Connects to RabbitMQ with automatic retries and fallback to candidate hosts.
-    - `_setup_topology` (def) L243 - Declares durable exchanges, queues, DLX, and bindings.
-    - `publish_message` (def) L299 - Publishes a persistent message with publisher confirmations.
-    - `publish_share_document_event` (def) L332 - Convenience method to publish domain events to the service events exchange.
-    - `consume_queue` (def) L341 - Subscribes to a queue and processes messages with manual acknowledgments.
-    - `_consume_in_memory` (def) L372
-    - `close` (def) L386
+## services/notifications/rabbitmq_config.py (196 lines) - RabbitMQ / Message Hub configuration: env-driven connection settings, exchange names and the hub server registry.
+- `_sanitize_amqp_url` (def) L12 - Mask password from AMQP URLs to prevent logging credentials.
+- `_explicit_url_parts` (def) L19 - Parsed RABBITMQ_URL, or None if unset.
+- `get_rabbitmq_host` (def) L30
+- `get_rabbitmq_port` (def) L37
+- `get_rabbitmq_management_port` (def) L50
+- `get_hub_status_cache_ttl` (def) L57 - Seconds a hub snapshot is reused (0 disables caching).
+- `hub_peer_http_probe_enabled` (def) L65 - Whether peers must also pass an HTTP /health/live probe to count as online (default off: hub presence is authoritative).
+- `get_rabbitmq_user` (def) L70
+- `get_rabbitmq_password` (def) L82
+- `get_rabbitmq_vhost` (def) L94 - Virtual host: from RABBITMQ_URL path, else RABBITMQ_VHOST / RABBITMQ_DEFAULT_VHOST, else '/'.
+- `_vhost_url_part` (def) L104
+- `get_rabbitmq_url` (def) L108
+- `get_commands_exchange` (def) L119
+- `get_events_exchange` (def) L123
+- `get_dlx_exchange` (def) L127
+- `get_presence_exchange` (def) L131
+- `get_prefetch_count` (def) L135
+- `_build_hub_application` (def) L172
+
+## services/notifications/rabbitmq_hub_snapshot.py (130 lines) - Message Hub snapshot helpers: broker state (management API / AMQP), peer liveness and queue descriptions.
+- `fetch_broker_state` (def) L23 - Live connections, queue/stream stats, broker version and whether the management API answered.
+- `peer_alive_flags` (def) L89 - Per hub application: is it considered alive (own connection, or optional HTTP /health/live probe for peers).
+    - `_http_alive` (def) L94
+- `describe_items` (def) L111 - Per-queue/stream status items, whether all exist, and the primary one's consumer count.
+
+## services/notifications/rabbitmq_hub_status.py (406 lines) - Message Hub behaviour for RabbitMQManager: SSE fan-out, shutdown, presence heartbeats, peer monitoring and live status snapshots.
+- `HubStatusMixin` (class) L38 - Methods mixed into RabbitMQManager; relies on its connection/registry attributes.
+    - `subscribe_sse` (def) L44
+    - `unsubscribe_sse` (def) L49
+    - `_broadcast_to_sse` (def) L52
+    - `notify_shutting_down` (def) L64 - Wakes all SSE streams so Uvicorn exits without hanging, and announces offline to peers.
+    - `install_uvicorn_shutdown_hook` (def) L75 - Hook Uvicorn's Server.handle_exit so SIGINT/SIGTERM closes SSE streams and broadcasts offline.
+    - `broadcast_server_status_update` (def) L93 - Publishes a server online/offline message on the presence exchange so every peer updates its registry.
+    - `_publish_presence_event` (def) L132
+    - `_presence_heartbeat_loop` (def) L135 - Announces this server's live status every 5 seconds.
+    - `_peer_status_monitor_loop` (def) L148 - Every 2.5s re-evaluates all hub servers; pushes SSE updates and announces peers that dropped/returned.
+    - `_run_active_queue_and_stream_probe` (def) L180 - Round-trips a message through a temporary queue and publishes a healthcheck event to the events exchange.
+    - `get_hub_live_status` (def) L239 - Live Message Hub snapshot, cached for HUB_STATUS_CACHE_TTL seconds with single-flight refresh.
+    - `_build_hub_live_status` (def) L264 - Live Message Hub snapshot (same shape as the other portal backends) for the topbar servers dropdown.
+    - `_hub_summary` (def) L374 - Top-level hub payload wrapping the per-server entries.
+
+## services/notifications/rabbitmq_in_memory.py (51 lines) - In-memory fallback broker used when no live RabbitMQ is available.
+- `InMemoryMessageBroker` (class) L7 - In-memory fallback & mock broker for unit testing and offline development
+    - `__init__` (def) L12
+    - `get_queue` (def) L16
+    - `publish` (def) L21
+    - `clear` (def) L45
+
+## services/notifications/rabbitmq_service.py (501 lines) - RabbitMQ Service & Topology Manager Provides resilient connection management, topology declaration, publisher confirmations, and dead-let...
+- `RabbitMQManager` (class) L78
+    - `__init__` (def) L79
+    - `amqp_url` (def) L117
+    - `amqp_url` (def) L121
+    - `is_connected` (def) L125
+    - `connect` (def) L128 - Attempts to connect to RabbitMQ broker and initialize topology.
+    - `_setup_topology` (def) L216 - Declares durable exchanges, queues, DLX, and bindings.
+    - `_setup_hub_streams` (def) L288 - Declares RabbitMQ Streams.
+    - `_handle_incoming_presence_payload` (def) L310
+    - `_start_hub_consumers` (def) L332 - Consumers for this server's command queue, the presence stream, and an instant status-notify queue.
+    - `publish_message` (def) L381 - Publishes a persistent message with publisher confirmations.
+    - `publish_share_document_event` (def) L415 - Convenience method to publish domain events to the service events exchange.
+    - `consume_queue` (def) L420 - Subscribes to a queue and processes messages with manual acknowledgments.
+    - `_consume_in_memory` (def) L451
+    - `close` (def) L465

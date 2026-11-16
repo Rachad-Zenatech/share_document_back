@@ -47,6 +47,8 @@ ALTER TABLE sec_financial_table_templates ADD COLUMN IF NOT EXISTS created_by UU
 ALTER TABLE sec_financial_table_templates ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES users(id);
 ALTER TABLE sec_financial_table_templates ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE sec_financial_table_templates ADD COLUMN IF NOT EXISTS deleted_by UUID REFERENCES users(id);
+-- Which kind of document the template is for: 'sec-filing' (financial statements) or 'script' (a video script's tables).
+ALTER TABLE sec_financial_table_templates ADD COLUMN IF NOT EXISTS document_type VARCHAR NOT NULL DEFAULT 'sec-filing';
 
 -- One live template per key; soft-deleted rows are excluded so a key can be reused.
 CREATE UNIQUE INDEX IF NOT EXISTS sec_financial_table_templates_key_live_idx

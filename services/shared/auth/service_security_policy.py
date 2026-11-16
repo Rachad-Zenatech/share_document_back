@@ -86,6 +86,13 @@ TRUSTED_APPLICATIONS = {
             "audit:write",
         },
     },
+    "social-media": {
+        "description": "Zenatech Social Media Compliance Portal (script documents)",
+        "allowed_inbound_scopes": {
+            "script_documents:read",
+            "script_documents:write",
+        },
+    },
     "template": {
         "description": "Zenatech Template Automation Portal",
         "allowed_inbound_scopes": {

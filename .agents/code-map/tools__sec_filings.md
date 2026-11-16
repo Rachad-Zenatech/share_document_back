@@ -4,6 +4,31 @@
 
 Each symbol shows its start line (`L<n>`); read from there to the next symbol's line, not the whole file.
 
+## tools/sec_filings/script_app_router.py (65 lines) - App-to-app routes for the Social Media portal's backend: create a script's shared document, read it back, invite and send it, move it thr...
+- `_run` (def) L20
+- `create_script` (def) L27 [POST ]
+- `delete_scripts` (def) L34 [POST /delete] - Delete scripts (one, or all the pages of an attached file) as their creator.
+- `read_script` (def) L40 [GET /{document_id}] - The script's details, beats and text, as `email` sees it.
+- `read_review` (def) L46 [GET /{document_id}/review]
+- `send` (def) L51 [POST /{document_id}/send]
+- `act` (def) L56 [POST /{document_id}/actions]
+- `embed_token` (def) L62 [POST /{document_id}/embed-token]
+
+## tools/sec_filings/script_directory_router.py (20 lines) - The people a script's invite screen offers: the Social Media portal's (see services/sec_filings/script_directory_service.py).
+- `script_users` (def) L14 [GET /script-users]
+
+## tools/sec_filings/script_review_router.py (76 lines) - Social Media Script review routes: who may do what on a script document, inviting and sending it, checking in, routing, the manager's dec...
+- `_run` (def) L23
+- `get_script_review` (def) L30 [GET ] - The review's state and what the caller may do (`access`: can_edit, can_note, can_submit, can_check_in,
+- `get_script_review_history` (def) L37 [GET /history]
+- `set_script_invitees` (def) L42 [PUT /invitees] - Creator only: who reviews (content reviewer, suggesting reviewer, manager or viewer) and with EDIT or VIEW capacity.
+- `send_script_for_review` (def) L48 [POST /send]
+- `check_in_script` (def) L53 [PUT /check-in]
+- `withdraw_script_check_in` (def) L58 [DELETE /check-in]
+- `finalize_script` (def) L63 [POST /finalize]
+- `decide_script` (def) L68 [POST /decision]
+- `create_post_from_script` (def) L73 [POST /create-post]
+
 ## tools/sec_filings/sec_filings.py (577 lines) - SEC filing routes: financial statement table templates.
 - `list_financial_table_templates` (def) L95
 - `create_financial_table_template` (def) L107

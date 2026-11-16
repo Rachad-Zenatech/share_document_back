@@ -31,7 +31,6 @@ from services.sec_filings.documents.sec_document_service import (
     DocumentConflict,
     DocumentForbidden,
     DocumentNotFound,
-    add_version,
     check_document_access,
     delete_document,
     get_document,
@@ -40,9 +39,9 @@ from services.sec_filings.documents.sec_document_service import (
     list_documents,
     list_proposals,
     list_versions,
-    save_document,
-    save_proposal,
 )
+from services.sec_filings.script_review_guard import add_version, save_document, save_proposal
+from tools.sec_filings.script_routes import router as script_routes
 from services.sec_filings.documents.sec_pdf_import_service import MAX_PDF_BYTES, get_pdf_import, start_pdf_import
 from services.sec_filings.workflow.sec_guest_service import (
     GuestEditRejected,
@@ -84,6 +83,7 @@ from services.sec_filings.workflow.sec_filing_workflow_service import (
 )
 
 router = APIRouter(prefix="/sec-filings")
+router.include_router(script_routes)
 
 
 

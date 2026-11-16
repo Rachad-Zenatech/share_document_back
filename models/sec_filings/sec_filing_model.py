@@ -70,6 +70,8 @@ class SecFinancialTableBlockPayload(BaseModel):
     title: str | None = None
     headers: list[str]
     header_shading: str | None = Field(default=None, alias="headerShading")
+    header_text_color: str | None = Field(default=None, alias="headerTextColor")
+    bold_columns: list[int] | None = Field(default=None, alias="boldColumns")
     period_headers: list[SecTablePeriodHeaderPayload] | None = Field(
         default=None, alias="periodHeaders"
     )
@@ -122,9 +124,14 @@ class SecFinancialTableBlockPayload(BaseModel):
         return period_headers
 
 
+# The kinds of document a table template can be for: SEC filings (financial statements) and video scripts.
+DocumentType = Literal["sec-filing", "script"]
+
+
 class FinancialTableTemplateBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
+    document_type: DocumentType = Field(default="sec-filing", alias="documentType")
     name: str = Field(min_length=1, max_length=200)
     description: str | None = None
     badge: str | None = Field(default=None, max_length=40)
@@ -156,6 +163,7 @@ class FinancialTableTemplateUpdate(BaseModel):
     icon: str | None = Field(default=None, max_length=60)
     color: str | None = None
     sort_order: int | None = Field(default=None, alias="sortOrder")
+    document_type: DocumentType | None = Field(default=None, alias="documentType")
     block: SecFinancialTableBlockPayload | None = None
 
 
@@ -173,6 +181,7 @@ class FinancialTableTemplate(BaseModel):
     color: str | None = None
     sort_order: int = Field(serialization_alias="sortOrder")
     is_builtin: bool = Field(serialization_alias="isBuiltin")
+    document_type: DocumentType = Field(default="sec-filing", serialization_alias="documentType")
     block: SecFinancialTableBlockPayload
     created_at: datetime = Field(serialization_alias="createdAt")
     updated_at: datetime = Field(serialization_alias="updatedAt")

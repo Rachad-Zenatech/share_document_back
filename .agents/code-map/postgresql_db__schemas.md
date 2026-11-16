@@ -8,9 +8,12 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `ensure_notifications_schema` (def) L28
     - `main` (def) L39
 
-## postgresql_db/schemas/sec_filing_schema.py (264 lines) - Schema for SEC filing financial statement table templates.
-- `ensure_schema` (def) L234
-    - `main` (def) L255
+## postgresql_db/schemas/sec_filing_schema.py (266 lines) - Schema for SEC filing financial statement table templates.
+- `ensure_schema` (def) L236
+    - `main` (def) L257
+
+## postgresql_db/schemas/sec_script_review_schema.py (74 lines) - Schema for the Social Media Script review workflow: one review per script document, its collaborators (invited reviewers, with a role and...
+- `ensure_schema` (def) L61
 
 ## postgresql_db/schemas/setup_ai_observability_schema.py (93 lines) - AI observability, caching and usage limits: trace spans for every AI step (model calls, embeddings, tool calls, guard checks, cache looku...
 - `setup` (def) L13

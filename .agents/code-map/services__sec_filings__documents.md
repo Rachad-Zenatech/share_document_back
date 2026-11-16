@@ -42,15 +42,15 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `save_document_spreadsheet` (def) L72
 - `update_spreadsheet_cell` (def) L136
 
-## services/sec_filings/documents/sec_filing_template_service.py (220 lines) - DB logic for SEC filing financial statement table templates.
+## services/sec_filings/documents/sec_filing_template_service.py (222 lines) - DB logic for SEC filing financial statement table templates.
 - `_slugify` (def) L24
 - `_row_to_template` (def) L29
 - `list_table_templates` (def) L38
 - `get_table_template` (def) L61
 - `create_table_template` (def) L74
-- `update_table_template` (def) L112
-- `delete_table_template` (def) L185
-- `bootstrap_sec_filing_table_templates` (def) L212 - Ensure the table exists.
+- `update_table_template` (def) L113
+- `delete_table_template` (def) L187
+- `bootstrap_sec_filing_table_templates` (def) L214 - Ensure the table exists.
 
 ## services/sec_filings/documents/sec_pdf_import_service.py (519 lines) - Convert an uploaded PDF into the SEC editor's document blocks.
 - `AiTableRow` (class) L60

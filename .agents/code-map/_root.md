@@ -4,22 +4,14 @@
 
 Each symbol shows its start line (`L<n>`); read from there to the next symbol's line, not the whole file.
 
-## server.py (561 lines) - server
-- `_graph_background_sync_enabled` (def) L59
-- `_env_flag` (def) L63
-- `lifespan` (def) L68
-- `MessageItem` (class) L191
-- `ChatRequest` (class) L195
-- `ai_chat` (def) L204 [POST /ai/chat]
-- `root` (def) L250 [GET /]
-- `health_live` (def) L254 [GET /health/live]
-- `health_ready` (def) L258 [GET /health/ready]
-- `integration_status` (def) L267 [GET /api/integration-status, GET /api/integration/status]
-- `_sweep_rate_buckets` (def) L350
-- `_client_ip` (def) L354
-- `_session_identity` (def) L360
-- `rate_limit` (def) L373
-- `security_headers` (def) L439
-- `_slow_request_threshold_ms` (def) L456
-- `_should_log_request_completion` (def) L465
-- `request_observability` (def) L471
+## server.py (328 lines) - server
+- `_graph_background_sync_enabled` (def) L53
+- `_env_flag` (def) L57
+- `lifespan` (def) L62
+- `MessageItem` (class) L192
+- `ChatRequest` (class) L196
+- `ai_chat` (def) L205 [POST /ai/chat]
+- `root` (def) L251 [GET /]
+- `health_live` (def) L255 [GET /health/live]
+- `health_ready` (def) L259 [GET /health/ready]
+- `integration_status` (def) L268 [GET /api/integration-status, GET /api/integration/status]

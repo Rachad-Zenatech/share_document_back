@@ -10,17 +10,20 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - mcp_tools/prompts.py (16 lines) - mcp_tools/prompts.py
 - mcp_tools/shared/permissions.py (54 lines) - permissions (shared)
 - models/notifications/notification_model.py (34 lines) - notification model (notifications)
-- models/sec_filings/sec_filing_model.py (373 lines) - Pydantic models for SEC filing financial statement table templates.
+- models/sec_filings/script_review_model.py (99 lines) - Pydantic models for the Social Media Script review workflow (see services/sec_filings/script_review_rules.py).
+- models/sec_filings/sec_filing_model.py (382 lines) - Pydantic models for SEC filing financial statement table templates.
 - models/shared/rbac_model.py (240 lines) - rbac model (shared)
-- postgresql_db/database.py (138 lines) - Optional dotenv import for loading .env and local overrides during development
+- postgresql_db/database.py (282 lines) - Optional dotenv import for loading .env and local overrides during development
 - postgresql_db/performance_indexes.py (145 lines) - Performance Indexes for High-Impact Queries Adds composite and partial indexes based on EXPLAIN ANALYZE query plans to eliminate sequenti...
 - postgresql_db/schema_metadata.py (224 lines) - SQLAlchemy Core schema mirror used ONLY for Alembic autogenerate.
 - postgresql_db/schemas/notifications_schema.py (46 lines) - notifications schema (schemas)
-- postgresql_db/schemas/sec_filing_schema.py (264 lines) - Schema for SEC filing financial statement table templates.
+- postgresql_db/schemas/sec_filing_schema.py (266 lines) - Schema for SEC filing financial statement table templates.
+- postgresql_db/schemas/sec_script_review_schema.py (74 lines) - Schema for the Social Media Script review workflow: one review per script document, its collaborators (invited reviewers, with a role and...
 - postgresql_db/schemas/setup_ai_observability_schema.py (93 lines) - AI observability, caching and usage limits: trace spans for every AI step (model calls, embeddings, tool calls, guard checks, cache looku...
 - postgresql_db/schemas/setup_graph_sync_schema.py (58 lines) - REQUESTER: assignable by an admin, grants standard document creation and viewing permissions.
 - postgresql_db/schemas/setup_pbac_schema.py (381 lines) - setup pbac schema (schemas)
-- server.py (561 lines) - server
+- postgresql_db/setup_rls_security.py (348 lines) - RDS PostgreSQL Role-Based Access Control & Row-Level Security (RLS) Setup.
+- server.py (328 lines) - server
 - services/ai/core/assistant_chat_service.py (254 lines) - Assistant chat: answers questions about the portal, streamed as SSE.
 - services/ai/core/gemini_service.py (123 lines) - Gemini calls with model rotation (ported from the admin portal's gemini_service).
 - services/ai/core/model_router.py (98 lines) - Model routing: picks which Gemini models a request tries first, by feature and by how demanding the request is.
@@ -32,24 +35,44 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - services/microsoft_graph/graph_sync_job.py (132 lines) - Periodic Microsoft Graph sync for already-known employees.
 - services/notifications/mqtt_presence.py (293 lines) - MQTT Service Presence & Event-Driven Messaging Component for Share Document.
 - services/notifications/notification_service.py (211 lines) - notification service (notifications)
-- services/notifications/rabbitmq_service.py (403 lines) - RabbitMQ Service & Topology Manager for Share Document Portal.
+- services/notifications/rabbitmq_config.py (196 lines) - RabbitMQ / Message Hub configuration: env-driven connection settings, exchange names and the hub server registry.
+- services/notifications/rabbitmq_hub_snapshot.py (130 lines) - Message Hub snapshot helpers: broker state (management API / AMQP), peer liveness and queue descriptions.
+- services/notifications/rabbitmq_hub_status.py (406 lines) - Message Hub behaviour for RabbitMQManager: SSE fan-out, shutdown, presence heartbeats, peer monitoring and live status snapshots.
+- services/notifications/rabbitmq_in_memory.py (51 lines) - In-memory fallback broker used when no live RabbitMQ is available.
+- services/notifications/rabbitmq_service.py (501 lines) - RabbitMQ Service & Topology Manager Provides resilient connection management, topology declaration, publisher confirmations, and dead-let...
+- services/sec_filings/document_live_sync.py (54 lines) - Telling open editors that a document changed, so they show it without a reload.
+- services/sec_filings/document_types.py (44 lines) - The kinds (categories) of document, and what each one does when it changes.
 - services/sec_filings/documents/pdf_extraction_service.py (246 lines) - PDF text and layout extraction, with Tesseract OCR for scanned PDFs (ported from the admin portal).
 - services/sec_filings/documents/sec_document_service.py (509 lines) - DB logic for filing documents, their change proposals and version snapshots.
 - services/sec_filings/documents/sec_filing_spreadsheet_service.py (200 lines) - Service for managing attached dynamic spreadsheets per SEC document.
-- services/sec_filings/documents/sec_filing_template_service.py (220 lines) - DB logic for SEC filing financial statement table templates.
+- services/sec_filings/documents/sec_filing_template_service.py (222 lines) - DB logic for SEC filing financial statement table templates.
 - services/sec_filings/documents/sec_pdf_import_service.py (519 lines) - Convert an uploaded PDF into the SEC editor's document blocks.
+- services/sec_filings/script_app_service.py (229 lines) - Social Media Script documents for the Social Media portal's backend (app-to-app, see tools/sec_filings/script_app_router.py).
+- services/sec_filings/script_directory_service.py (64 lines) - The Social Media portal's people, for a script's invite screen.
+- services/sec_filings/script_review_events.py (57 lines) - Events of the Social Media Script review, for the portal's event bus (MQTT and RabbitMQ).
+- services/sec_filings/script_review_flow.py (137 lines) - Social Media Script review: the moves during review (check in, finalize, decide, create the post) and the events for proposals and merges.
+- services/sec_filings/script_review_guard.py (54 lines) - Social Media Script reviews: the three document writes, guarded.
+- services/sec_filings/script_review_rules.py (121 lines) - Social Media Script review: who may do what, as pure functions (no database, no events).
+- services/sec_filings/script_review_service.py (211 lines) - Social Media Script review: the state of a script's review, who may do what (script_review_rules), and the moves through it: invite, send...
+- services/sec_filings/script_service_auth.py (43 lines) - Who may call the Social Media portal's script API (tools/sec_filings/script_app_router.py).
 - services/sec_filings/workflow/sec_filing_signature_service.py (150 lines) - Database and event services for SEC filing mobile e-signature envelopes.
 - services/sec_filings/workflow/sec_filing_workflow_service.py (239 lines) - DB logic for SEC reporting workflows and their assignment to documents.
 - services/sec_filings/workflow/sec_guest_service.py (250 lines) - No-login guest access for external contributors: one change proposal, nothing else.
-- services/shared/auth/auth_service.py (662 lines) - auth service (shared auth)
+- services/shared/auth/auth_service.py (461 lines) - auth service (shared auth)
+- services/shared/auth/microsoft_auth_service.py (231 lines) - Microsoft Entra SSO claims parsing, user provisioning, and department resolution.
 - services/shared/auth/rbac_service.py (746 lines) - Utility for audit logging
-- services/shared/auth/service_security_policy.py (241 lines) - Enterprise Application Security & Scope Authorization Policy Defines the strict Application-to-Application Access Matrix (Machine-to-Mach...
+- services/shared/auth/service_security_policy.py (248 lines) - Enterprise Application Security & Scope Authorization Policy Defines the strict Application-to-Application Access Matrix (Machine-to-Mach...
 - services/shared/core/audit_service.py (127 lines) - audit service (shared core)
 - services/shared/core/cache_service.py (183 lines) - cache service (shared core)
+- services/shared/core/http_middleware.py (300 lines) - HTTP middleware registration for session, rate limiting, security headers, observability, and CORS.
 - services/shared/core/logging_service.py (118 lines) - Structured application logging suitable for container stdout and CloudWatch Logs.
 - tools/microsoft_graph/graph_router.py (46 lines) - Graph User Search Router Exposes a search endpoint that proxies Microsoft Graph /v1.0/users?$search=...
-- tools/notifications/notification_router.py (81 lines) - notification router (notifications)
+- tools/notifications/message_hub_router.py (57 lines) - Message Hub endpoints for the topbar servers dropdown (mounted at /api/message-hub, authenticated).
+- tools/notifications/notification_router.py (84 lines) - notification router (notifications)
 - tools/notifications/notification_ws_router.py (120 lines) - Notification WebSocket Router Provides: - WebSocket /ws/notifications: Real-time notification delivery.
+- tools/sec_filings/script_app_router.py (65 lines) - App-to-app routes for the Social Media portal's backend: create a script's shared document, read it back, invite and send it, move it thr...
+- tools/sec_filings/script_directory_router.py (20 lines) - The people a script's invite screen offers: the Social Media portal's (see services/sec_filings/script_directory_service.py).
+- tools/sec_filings/script_review_router.py (76 lines) - Social Media Script review routes: who may do what on a script document, inviting and sending it, checking in, routing, the manager's dec...
 - tools/sec_filings/sec_filings.py (577 lines) - SEC filing routes: financial statement table templates.
 - tools/shared/auth_router.py (327 lines) - auth router (shared)
 - tools/shared/log_router.py (74 lines) - log router (shared)

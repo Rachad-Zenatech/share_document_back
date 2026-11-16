@@ -5,20 +5,12 @@
     "py_function": 120
   },
   "files": {
-    "server.py": {
-      "max_lines": 560,
-      "reason": "Over the limit when the check was introduced; split it when you next work on it."
-    },
     "services/sec_filings/documents/sec_document_service.py": {
       "max_lines": 508,
       "reason": "Over the limit when the check was introduced; split it when you next work on it."
     },
     "services/sec_filings/documents/sec_pdf_import_service.py": {
       "max_lines": 518,
-      "reason": "Over the limit when the check was introduced; split it when you next work on it."
-    },
-    "services/shared/auth/auth_service.py": {
-      "max_lines": 661,
       "reason": "Over the limit when the check was introduced; split it when you next work on it."
     },
     "services/shared/auth/rbac_service.py": {
@@ -37,10 +29,6 @@
     },
     "services/shared/auth/auth_service.py#get_my_permissions": {
       "max_lines": 123,
-      "kind": "py_function"
-    },
-    "services/shared/auth/auth_service.py#upsertMicrosoftUser": {
-      "max_lines": 139,
       "kind": "py_function"
     },
     "tools/shared/search.py#global_search": {

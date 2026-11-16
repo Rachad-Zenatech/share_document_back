@@ -4,19 +4,40 @@
 
 Each symbol shows its start line (`L<n>`); read from there to the next symbol's line, not the whole file.
 
-## postgresql_db/database.py (138 lines) - Optional dotenv import for loading .env and local overrides during development
-- `create_pool` (def) L19 - Creates the connection pool if it doesn't exist yet, then returns it.
-- `close_pool` (def) L63
-- `reset_pool` (def) L71 - Drop the current pool and create a fresh one after connection failures.
-- `get_pool` (def) L84
-- `get_conn` (def) L91
-- `fetch_one` (def) L101
-- `fetch_all` (def) L111
-- `execute` (def) L121
-- `execute_many` (def) L131
+## postgresql_db/database.py (282 lines) - Optional dotenv import for loading .env and local overrides during development
+- `acquire_timeout` (def) L18 - Seconds a caller will wait for a free pooled connection before giving up.
+- `_resolve_rls_identity` (def) L23 - Resolve verified user identity and super-admin status from explicit parameters or auth ContextVars.
+- `set_rls_context` (def) L46 - Supply the verified user identity to PostgreSQL Row-Level Security (RLS) using bound parameters.
+- `_RLSPoolAcquireContext` (class) L67 - Wraps asyncpg PoolAcquireContext to propagate verified RLS context on connection checkout.
+    - `__init__` (def) L72
+    - `__await__` (def) L77
+    - `__aenter__` (def) L80
+    - `__aexit__` (def) L96
+- `PoolWrapper` (class) L108 - Wraps an asyncpg.Pool to provide a default acquire timeout and RLS context across all callers.
+    - `__init__` (def) L111
+    - `acquire` (def) L114
+    - `close` (def) L118
+    - `terminate` (def) L121
+    - `__aenter__` (def) L124
+    - `__aexit__` (def) L127
+    - `__getattr__` (def) L130
+- `create_pool` (def) L138 - Creates the connection pool if it doesn't exist yet, then returns it.
+- `close_pool` (def) L183
+- `reset_pool` (def) L191 - Drop the current pool and create a fresh one after connection failures.
+- `get_pool` (def) L204
+- `get_rls_conn` (def) L211 - Acquire a pooled connection, start a transaction, and bind `app.user_id` locally to that transaction.
+- `get_conn` (def) L229
+- `fetch_one` (def) L245
+- `fetch_all` (def) L255
+- `execute` (def) L265
+- `execute_many` (def) L275
 
 ## postgresql_db/performance_indexes.py (145 lines) - Performance Indexes for High-Impact Queries Adds composite and partial indexes based on EXPLAIN ANALYZE query plans to eliminate sequenti...
 - `ensure_performance_indexes` (def) L124 - Applies high-impact composite and partial indexes idempotently.
     - `main` (def) L138
 
 ## postgresql_db/schema_metadata.py (224 lines) - SQLAlchemy Core schema mirror used ONLY for Alembic autogenerate.
+
+## postgresql_db/setup_rls_security.py (348 lines) - RDS PostgreSQL Role-Based Access Control & Row-Level Security (RLS) Setup.
+- `ensure_rls_security` (def) L320 - Apply RDS PostgreSQL permission roles and Row-Level Security (RLS) policies idempotently.
+    - `_main` (def) L339

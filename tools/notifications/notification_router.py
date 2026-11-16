@@ -8,7 +8,10 @@ from services.notifications.notification_service import get_recent_notifications
 from services.shared.auth.auth_service import get_current_user_id_dependency
 from uuid import UUID
 
+from tools.notifications.message_hub_router import message_hub_router
+
 notification_router = APIRouter()
+notification_router.include_router(message_hub_router, prefix="/message-hub", tags=["Message Hub"])
 
 def get_current_user_id(user_id: UUID = Depends(get_current_user_id_dependency)) -> str:
     return str(user_id)

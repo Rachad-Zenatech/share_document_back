@@ -17,7 +17,7 @@ from services.shared.core.cache_service import master_data_cache, emit_cache_inv
 
 _COLUMNS = """
     id, template_key, name, description, badge, icon, color, sort_order,
-    is_builtin, block, created_at, updated_at, updated_by
+    is_builtin, document_type, block, created_at, updated_at, updated_by
 """
 
 
@@ -91,8 +91,8 @@ async def create_table_template(payload: dict[str, Any], user_id: UUID) -> dict[
                 f"""
                 INSERT INTO sec_financial_table_templates
                     (template_key, name, description, badge, icon, color, sort_order,
-                     is_builtin, block, created_by, updated_by)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8::jsonb, $9, $9)
+                     is_builtin, block, created_by, updated_by, document_type)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8::jsonb, $9, $9, $10)
                 RETURNING {_COLUMNS}
                 """,
                 key,
@@ -104,6 +104,7 @@ async def create_table_template(payload: dict[str, Any], user_id: UUID) -> dict[
                 payload.get("sort_order") or 0,
                 json.dumps(payload["block"]),
                 user_id,
+                payload.get("document_type") or "sec-filing",
             )
     await emit_cache_invalidation(scope="master_data")
     return _row_to_template(row)
@@ -134,6 +135,7 @@ async def update_table_template(
             "icon": payload.get("icon") or "table",
             "color": payload.get("color"),
             "sort_order": payload.get("sort_order") or 0,
+            "document_type": payload.get("document_type") or "sec-filing",
             "block": payload.get("block") or {
                 "title": name,
                 "headers": ["Item", "Value"],
@@ -149,7 +151,7 @@ async def update_table_template(
     sets: list[str] = []
     args: list[Any] = []
 
-    simple_fields = ("name", "description", "badge", "icon", "color", "sort_order")
+    simple_fields = ("name", "description", "badge", "icon", "color", "sort_order", "document_type")
     for field in simple_fields:
         if field in payload and payload[field] is not None:
             args.append(payload[field])

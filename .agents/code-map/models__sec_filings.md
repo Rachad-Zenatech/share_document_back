@@ -4,34 +4,49 @@
 
 Each symbol shows its start line (`L<n>`); read from there to the next symbol's line, not the whole file.
 
-## models/sec_filings/sec_filing_model.py (373 lines) - Pydantic models for SEC filing financial statement table templates.
+## models/sec_filings/script_review_model.py (99 lines) - Pydantic models for the Social Media Script review workflow (see services/sec_filings/script_review_rules.py).
+- `ScriptInvitee` (class) L12
+- `ScriptSendPayload` (class) L18 - Invite reviewers (replacing the list) and send the script for review.
+- `ScriptInvitePayload` (class) L26
+- `ScriptCheckInPayload` (class) L30
+- `ScriptFinalizePayload` (class) L35
+- `ScriptDecisionPayload` (class) L40
+- `ScriptCreatePostPayload` (class) L45
+- `AppBeat` (class) L52
+- `AppCreateScript` (class) L59 - Make a script document for `user_email`.
+- `AppInvitee` (class) L71
+- `AppDelete` (class) L79 - Delete script documents on behalf of their creator (one call for one script or for a whole attached file).
+- `AppSend` (class) L85
+- `AppAct` (class) L92
+
+## models/sec_filings/sec_filing_model.py (382 lines) - Pydantic models for SEC filing financial statement table templates.
 - `SecTableRowPayload` (class) L26 - One row of a financial statement table.
 - `SecTablePeriodHeaderPayload` (class) L52 - Centered multi-line comparative reporting-period label for one column.
 - `SecFinancialTableBlockPayload` (class) L63 - The structure copied into a `financial_table` block when applied.
-    - `_at_least_two_columns` (def) L83
-    - `_rows_match_column_count` (def) L92
-    - `_period_headers_match_columns` (def) L108
-- `FinancialTableTemplateBase` (class) L125
-- `FinancialTableTemplateCreate` (class) L137 - A template saved from a table the user has already built.
-- `FinancialTableTemplateUpdate` (class) L148 - Partial update; only the supplied fields are written.
-- `FinancialTableTemplate` (class) L162 - A template as returned to the frontend.
-- `FinancialTableTemplateList` (class) L182
-- `SecWorkflowAssignee` (class) L190 - A person on a workflow step: a platform user (user_id set) or an external name.
-- `SecWorkflowStep` (class) L200 - One step of a reporting workflow, e.g.
-- `SecWorkflowCreate` (class) L213
-- `SecWorkflowUpdate` (class) L221 - Partial update; only the supplied fields are written.
-- `SecWorkflow` (class) L231
-- `SecWorkflowList` (class) L244
-- `SecWorkflowDocumentsPayload` (class) L251
-- `SecDocumentWorkflowAssignPayload` (class) L257
-- `SecDocumentSavePayload` (class) L263 - A whole SecFilingDocument as the editor holds it (stored as JSONB).
-- `SecProposalSavePayload` (class) L275
-- `SecGuestProposalSavePayload` (class) L282 - A guest contributor's proposal; only its editable fields are applied.
-- `SecVersionSavePayload` (class) L288
-- `SecDocumentImportPayload` (class) L292 - What one browser had in localStorage before documents moved to the server.
-- `MobileSignatureDispatchRequest` (class) L300
-- `MobileSignatureCompleteRequest` (class) L314
-- `MobileSignatureEnvelopeResponse` (class) L324
-- `AttachedSpreadsheetColumnPayload` (class) L344
-- `AttachedSpreadsheetPayload` (class) L351
-- `UpdateSpreadsheetCellPayload` (class) L368
+    - `_at_least_two_columns` (def) L85
+    - `_rows_match_column_count` (def) L94
+    - `_period_headers_match_columns` (def) L110
+- `FinancialTableTemplateBase` (class) L131
+- `FinancialTableTemplateCreate` (class) L144 - A template saved from a table the user has already built.
+- `FinancialTableTemplateUpdate` (class) L155 - Partial update; only the supplied fields are written.
+- `FinancialTableTemplate` (class) L170 - A template as returned to the frontend.
+- `FinancialTableTemplateList` (class) L191
+- `SecWorkflowAssignee` (class) L199 - A person on a workflow step: a platform user (user_id set) or an external name.
+- `SecWorkflowStep` (class) L209 - One step of a reporting workflow, e.g.
+- `SecWorkflowCreate` (class) L222
+- `SecWorkflowUpdate` (class) L230 - Partial update; only the supplied fields are written.
+- `SecWorkflow` (class) L240
+- `SecWorkflowList` (class) L253
+- `SecWorkflowDocumentsPayload` (class) L260
+- `SecDocumentWorkflowAssignPayload` (class) L266
+- `SecDocumentSavePayload` (class) L272 - A whole SecFilingDocument as the editor holds it (stored as JSONB).
+- `SecProposalSavePayload` (class) L284
+- `SecGuestProposalSavePayload` (class) L291 - A guest contributor's proposal; only its editable fields are applied.
+- `SecVersionSavePayload` (class) L297
+- `SecDocumentImportPayload` (class) L301 - What one browser had in localStorage before documents moved to the server.
+- `MobileSignatureDispatchRequest` (class) L309
+- `MobileSignatureCompleteRequest` (class) L323
+- `MobileSignatureEnvelopeResponse` (class) L333
+- `AttachedSpreadsheetColumnPayload` (class) L353
+- `AttachedSpreadsheetPayload` (class) L360
+- `UpdateSpreadsheetCellPayload` (class) L377
