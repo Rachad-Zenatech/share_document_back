@@ -26,14 +26,23 @@ DEPRECATED_MODELS = {
     "gemini-1.5-pro",
     "gemini-1.0-pro",
     "gemini-2.5-pro",
+    # Google answers these with 404 ("no longer available to new users"); trying them only wastes a call and a wait.
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
 }
 
 _ROTATABLE_MESSAGES = (
     "404", "not found", "no longer available", "not available",
-    "429", "503", "resource_exhausted", "quota exceeded",
-    "too many requests", "unavailable", "high demand",
-    "is not supported", "invalid model", "deprecated",
+    "429", "503", "504", "resource_exhausted", "quota exceeded",
+    "too many requests", "unavailable", "high demand", "deadline_exceeded",
+    "deadline expired", "timed out", "is not supported", "invalid model", "deprecated",
 )
+
+
+def without_retired(models):
+    """Return models that are not retired, preserving order (or original list if all are retired)."""
+    kept = [m for m in models if m.strip().lower() not in DEPRECATED_MODELS]
+    return kept or list(models)
 
 
 def _normalize_ai_model_name(name: str) -> str:
@@ -41,26 +50,30 @@ def _normalize_ai_model_name(name: str) -> str:
     return name.strip().lower().replace(" ", "-")
 
 
-# Text-generation models only (e.g. gemini-2.5-flash, gemini-3.1-pro, gemini-3-flash-preview).
+# Text-generation models only (e.g. gemini-3-flash-preview, gemini-3.1-flash-lite).
 # GEMINI_AVAILABLE_MODELS may also list image, video, speech, embedding, live-audio and
 # agent models, which cannot answer a text request and would only slow the rotation down.
 _TEXT_MODEL_RE = re.compile(r"^gemini-\d+(\.\d+)?-(flash|flash-lite|pro)(-preview)?(-[\d-]+)?$")
 
 
 def get_gemini_fallback_models() -> List[str]:
-    """Configured text models in rotation order; deprecated and non-text models removed."""
+    """Configured text models in priority rotation order; deprecated and non-text models removed."""
     models_str = os.getenv(
         "GEMINI_AVAILABLE_MODELS",
-        "gemini-2.5-flash,gemini-3.1-flash-lite,gemini-2.5-flash-lite,gemini-3.1-pro-preview,gemini-3-flash-preview",
+        "gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-3.1-pro-preview",
     )
-    models = [_normalize_ai_model_name(m) for m in models_str.split(",") if m.strip()]
-    models = [m for m in models if m not in DEPRECATED_MODELS and _TEXT_MODEL_RE.match(m)]
-    return list(dict.fromkeys(models)) or ["gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite"]
+    raw = [_normalize_ai_model_name(m) for m in models_str.split(",") if m.strip()]
+    models = [m for m in dict.fromkeys(raw) if m not in DEPRECATED_MODELS and _TEXT_MODEL_RE.match(m)]
+    priority_order = ["gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.1-pro-preview"]
+    ordered = [m for m in priority_order if m in models] + [m for m in models if m not in priority_order]
+    return ordered or ["gemini-3-flash-preview", "gemini-3.1-flash-lite"]
 
 
 def is_rotatable_model_error(e: Exception) -> bool:
-    """Rate limit, quota, overload or unavailable/deprecated model (400/404/429/503)."""
-    if isinstance(e, errors.APIError) and getattr(e, "code", getattr(e, "status", None)) in (400, 404, 429, 503):
+    """Rate limit, quota, overload, timeout or unavailable/deprecated model (400/404/429/503/504)."""
+    if isinstance(e, errors.APIError) and getattr(e, "code", getattr(e, "status", None)) in (400, 404, 429, 503, 504):
+        return True
+    if isinstance(e, TimeoutError) or "Timeout" in type(e).__name__:
         return True
     msg = str(e).lower()
     return any(k in msg for k in _ROTATABLE_MESSAGES)

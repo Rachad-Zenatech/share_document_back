@@ -16,12 +16,19 @@ import os
 from dataclasses import dataclass
 from typing import Dict, List
 
+from services.ai.core.gemini_service import (
+    DEPRECATED_MODELS,
+    get_gemini_fallback_models,
+    is_rotatable_model_error,
+    without_retired,
+)
+
 TIERS = ("LIGHT", "STANDARD", "HEAVY")
 # HEAVY defaults to flash because Pro models have no free-tier allowance; on a paid key, put a Pro model first.
 _TIER_DEFAULTS: Dict[str, str] = {
-    "LIGHT": "gemini-3.1-flash-lite,gemini-2.5-flash-lite",
-    "STANDARD": "gemini-2.5-flash,gemini-3-flash-preview",
-    "HEAVY": "gemini-2.5-flash,gemini-3-flash-preview",
+    "LIGHT": "gemini-3.1-flash-lite,gemini-3.5-flash-lite",
+    "STANDARD": "gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash-lite",
+    "HEAVY": "gemini-3-flash-preview,gemini-3.1-flash-lite",
 }
 _FEATURE_TIERS: Dict[str, str] = {
     "CHAT": "LIGHT",
@@ -29,16 +36,8 @@ _FEATURE_TIERS: Dict[str, str] = {
 LONG_PROMPT_CHARS = 8_000
 VERY_LONG_PROMPT_CHARS = 60_000
 
-_DEFAULT_MODELS = "gemini-2.5-flash,gemini-3.1-flash-lite,gemini-2.5-flash-lite,gemini-3.1-pro-preview,gemini-3-flash-preview"
-_RETIRED_MODELS = {
-    "gemini-2.0-flash", "gemini-2.0-pro", "gemini-2.0-flash-lite", "gemini-2-flash", "gemini-2-flash-lite",
-    "gemini-2", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro", "gemini-2.5-pro",
-}
-_ROTATABLE_ERROR_HINTS = (
-    "404", "not found", "no longer available", "not available", "429", "503", "resource_exhausted",
-    "quota exceeded", "too many requests", "unavailable", "high demand", "is not supported", "invalid model",
-    "deprecated",
-)
+_DEFAULT_MODELS = "gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash-lite"
+_RETIRED_MODELS = DEPRECATED_MODELS
 
 
 @dataclass
@@ -49,20 +48,8 @@ class Route:
 
 
 def fallback_models() -> List[str]:
-    """Every configured Gemini model (GEMINI_AVAILABLE_MODELS), retired ones left out, in the configured order."""
-    raw = os.getenv("GEMINI_AVAILABLE_MODELS", _DEFAULT_MODELS)
-    models = [m.strip().lower().replace(" ", "-") for m in raw.split(",") if m.strip()]
-    models = [m for m in dict.fromkeys(models) if m not in _RETIRED_MODELS]
-    return models or ["gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite"]
-
-
-def is_rotatable_model_error(e: Exception) -> bool:
-    """A rate limit, exhausted quota, overloaded or retired model: worth trying the next model."""
-    code = getattr(e, "code", getattr(e, "status", None))
-    if code in (400, 404, 429, 503):
-        return True
-    msg = str(e).lower()
-    return any(k in msg for k in _ROTATABLE_ERROR_HINTS)
+    """Every configured Gemini model (GEMINI_AVAILABLE_MODELS), retired ones left out, in priority order."""
+    return get_gemini_fallback_models()
 
 
 def enabled() -> bool:
@@ -71,7 +58,7 @@ def enabled() -> bool:
 
 def tier_models(tier: str) -> List[str]:
     raw = os.getenv(f"AI_ROUTE_TIER_{tier}", _TIER_DEFAULTS[tier])
-    return [m.strip().lower() for m in raw.split(",") if m.strip()]
+    return without_retired([m.strip().lower() for m in raw.split(",") if m.strip()])
 
 
 def base_tier(feature: str) -> str:
