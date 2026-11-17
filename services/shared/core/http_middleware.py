@@ -90,12 +90,11 @@ def _should_log_request_completion(path: str, status_code: int, duration_ms: flo
     return status_code >= 400 or duration_ms >= SLOW_REQUEST_THRESHOLD_MS
 
 
+from services.shared.core.secret_config import require_secret
+
+
 def _register_session_middleware(app: FastAPI, *, is_prod: bool) -> None:
-    session_secret = os.environ.get("SESSION_SECRET")
-    if not session_secret:
-        if is_prod:
-            raise RuntimeError("CRITICAL: SESSION_SECRET must be configured in production!")
-        session_secret = "dev_ephemeral_session_secret_minimum_32_chars_ok!"
+    session_secret = require_secret("SESSION_SECRET")
 
     app.add_middleware(
         SessionMiddleware,

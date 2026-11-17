@@ -22,22 +22,22 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
     - `handle_notification` (def) L125
 - `start_cache_invalidation_listener` (def) L139 - Background worker that listens for PostgreSQL NOTIFY events on CACHE_CHANNEL.
 
-## services/shared/core/http_middleware.py (300 lines) - HTTP middleware registration for session, rate limiting, security headers, observability, and CORS.
+## services/shared/core/http_middleware.py (299 lines) - HTTP middleware registration for session, rate limiting, security headers, observability, and CORS.
 - `_env_flag` (def) L23
 - `_sweep_rate_buckets` (def) L47
 - `_client_ip` (def) L52
 - `_session_identity` (def) L59
 - `_slow_request_threshold_ms` (def) L76
 - `_should_log_request_completion` (def) L87
-- `_register_session_middleware` (def) L93
-- `_register_rate_limit_middleware` (def) L109
-    - `rate_limit` (def) L111
-- `_register_security_headers_middleware` (def) L175
-    - `security_headers` (def) L182
-- `_register_observability_middleware` (def) L196
-    - `request_observability` (def) L198
-- `_register_cors_middleware` (def) L267
-- `register_http_middlewares` (def) L283 - Register HTTP middlewares in the exact Starlette LIFO order expected by server.py.
+- `_register_session_middleware` (def) L96
+- `_register_rate_limit_middleware` (def) L108
+    - `rate_limit` (def) L110
+- `_register_security_headers_middleware` (def) L174
+    - `security_headers` (def) L181
+- `_register_observability_middleware` (def) L195
+    - `request_observability` (def) L197
+- `_register_cors_middleware` (def) L266
+- `register_http_middlewares` (def) L282 - Register HTTP middlewares in the exact Starlette LIFO order expected by server.py.
 
 ## services/shared/core/logging_service.py (118 lines) - Structured application logging suitable for container stdout and CloudWatch Logs.
 - `JsonFormatter` (class) L39 - Emit one compact JSON object per line for CloudWatch Logs Insights.
@@ -45,3 +45,6 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `configure_logging` (def) L64 - Configure stdout once; AWS container log drivers collect this stream.
 - `log_background_task_result` (def) L85 - Log a task that exits unexpectedly instead of losing its exception.
 - `asyncio_exception_handler` (def) L102 - Capture detached asyncio failures that would otherwise only reach stderr.
+
+## services/shared/core/secret_config.py (18 lines) - Validated secret lookup from environment variables with no hardcoded fallbacks.
+- `require_secret` (def) L6 - Return the first configured secret meeting min_length, or raise RuntimeError.

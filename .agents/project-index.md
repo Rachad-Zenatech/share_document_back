@@ -64,8 +64,9 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - services/shared/auth/service_security_policy.py (248 lines) - Enterprise Application Security & Scope Authorization Policy Defines the strict Application-to-Application Access Matrix (Machine-to-Mach...
 - services/shared/core/audit_service.py (127 lines) - audit service (shared core)
 - services/shared/core/cache_service.py (183 lines) - cache service (shared core)
-- services/shared/core/http_middleware.py (300 lines) - HTTP middleware registration for session, rate limiting, security headers, observability, and CORS.
+- services/shared/core/http_middleware.py (299 lines) - HTTP middleware registration for session, rate limiting, security headers, observability, and CORS.
 - services/shared/core/logging_service.py (118 lines) - Structured application logging suitable for container stdout and CloudWatch Logs.
+- services/shared/core/secret_config.py (18 lines) - Validated secret lookup from environment variables with no hardcoded fallbacks.
 - tools/microsoft_graph/graph_router.py (46 lines) - Graph User Search Router Exposes a search endpoint that proxies Microsoft Graph /v1.0/users?$search=...
 - tools/notifications/message_hub_router.py (57 lines) - Message Hub endpoints for the topbar servers dropdown (mounted at /api/message-hub, authenticated).
 - tools/notifications/notification_router.py (84 lines) - notification router (notifications)
