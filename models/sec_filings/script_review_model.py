@@ -96,3 +96,12 @@ class AppAct(BaseModel):
     route: Optional[Literal["LEVEL2", "CREATOR"]] = None
     decision: Optional[Literal["APPROVE", "SEND_BACK"]] = None
     note: Optional[str] = None
+
+
+class AppImportSubmission(AppCreateScript):
+    """Idempotently adopt an existing submitted post into the shared script workflow."""
+    document_id: str = Field(pattern=r"^doc-social-submission-[0-9a-f]{32}$")
+    source_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    status: Literal["IN_REVIEW", "CHANGES_REQUESTED", "APPROVED"] = "IN_REVIEW"
+    round: int = Field(default=1, ge=1)
+    invitees: List[AppInvitee] = Field(default_factory=list)

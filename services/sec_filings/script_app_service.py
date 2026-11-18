@@ -39,12 +39,79 @@ class AppServiceError(Exception):
         self.status_code = status_code
 
 
+async def _ensure_standard_user_role(conn: Any, user_id: UUID) -> None:
+    """Assign the Standard User (`USER`) role if the user has no active role yet."""
+    has_role = await conn.fetchval(
+        "SELECT 1 FROM user_roles WHERE user_id = $1 AND is_active = true LIMIT 1",
+        user_id,
+    )
+    if has_role:
+        return
+    role = await conn.fetchrow(
+        """
+        SELECT id FROM roles
+        WHERE UPPER(code) = 'USER' OR UPPER(name) = 'STANDARD USER'
+        ORDER BY (UPPER(code) = 'USER') DESC
+        LIMIT 1
+        """
+    )
+    if not role:
+        role = await conn.fetchrow(
+            """
+            INSERT INTO roles (code, name, description, is_system_role, is_active)
+            VALUES ('USER', 'Standard User', 'Standard system user with basic dashboard access', false, true)
+            ON CONFLICT (code) DO UPDATE SET is_active = true
+            RETURNING id
+            """
+        )
+    if role:
+        await conn.execute(
+            """
+            INSERT INTO user_roles (user_id, role_id, assigned_at, is_active)
+            VALUES ($1, $2, now(), true)
+            ON CONFLICT (user_id, role_id) DO UPDATE SET is_active = true, assigned_at = now()
+            """,
+            user_id,
+            role["id"],
+        )
+
+
 async def user_by_email(email: str) -> Dict[str, Any]:
-    row = await get_pool().fetchrow(
+    """Return an active Share Document user for `email`, auto-provisioning them with Standard User role if absent."""
+    clean_email = (email or "").strip().lower()
+    if not clean_email or "@" not in clean_email:
+        raise AppServiceError("A valid email is required", 422)
+    pool = get_pool()
+    row = await pool.fetchrow(
         "SELECT id, email, coalesce(nullif(full_name, ''), email) AS name FROM users "
-        "WHERE lower(email) = lower($1) AND deleted_at IS NULL AND is_active = true", (email or "").strip())
-    if not row:
-        raise AppServiceError(f"{email} isn't a user of the Share Document portal yet", 422)
+        "WHERE lower(email) = $1 AND deleted_at IS NULL AND is_active = true",
+        clean_email,
+    )
+    if row:
+        return dict(row)
+
+    fallback_name = clean_email.split("@", 1)[0].replace(".", " ").replace("_", " ").strip().title() or clean_email
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            row = await conn.fetchrow(
+                """
+                INSERT INTO users (
+                    email, full_name, auth_provider, sso_enabled,
+                    is_active, is_super_admin, created_at
+                ) VALUES ($1, $2, 'microsoft', true, true, false, now())
+                ON CONFLICT (email) DO UPDATE SET
+                    full_name = COALESCE(NULLIF(users.full_name, ''), EXCLUDED.full_name),
+                    auth_provider = COALESCE(users.auth_provider, 'microsoft'),
+                    sso_enabled = true,
+                    is_active = true,
+                    deleted_at = NULL,
+                    deleted_by = NULL
+                RETURNING id, email, coalesce(nullif(full_name, ''), email) AS name
+                """,
+                clean_email,
+                fallback_name,
+            )
+            await _ensure_standard_user_role(conn, row["id"])
     return dict(row)
 
 
@@ -85,7 +152,7 @@ def build_document(doc_id: str, owner: Dict[str, Any], title: str, details: Dict
     if (details.get("Description") or "").strip():  # the note line is there when the script has one, as in the document
         blocks.append(para(4, f"Footage and compliance note: {details['Description']}"))
     return {
-        "id": doc_id, "title": title, "symbol": "ZENA", "formType": rules.FORM_TYPE, "period": "", "currency": "USD",
+        "id": doc_id, "title": title, "templateType": rules.TEMPLATE_ID, "formType": rules.FORM_TYPE, "period": "",
         "status": "draft", "version": "v1.0.0", "versionNumber": 1, "blocks": blocks, "createdAt": now, "updatedAt": now,
         "lastModifiedBy": owner["name"], "ownerId": str(owner["id"]), "ownerEmail": (owner["email"] or "").lower(),
         "externalRef": external_ref or None,

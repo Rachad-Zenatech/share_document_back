@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from models.sec_filings.script_review_model import AppAct, AppCreateScript, AppDelete, AppSend
+from models.sec_filings.script_review_model import AppAct, AppCreateScript, AppDelete, AppSend, AppImportSubmission
 from services.sec_filings import script_app_service as app
 from services.sec_filings.script_review_service import ScriptReviewError
 from services.sec_filings.script_service_auth import require_script_service
@@ -29,6 +29,12 @@ async def create_script(payload: AppCreateScript, _: Dict[str, Any] = write_scop
     details = {str(k): str(v) for k, v in (payload.details or {}).items()}
     return await _run(app.create_script(payload.user_email, payload.title, details, [b.model_dump() for b in payload.rows],
                                         payload.external_ref, payload.number))
+
+
+@router.post("/from-submission")
+async def import_submission(payload: AppImportSubmission, _: Dict[str, Any] = write_scope):
+    from services.sec_filings.script_submission_import import import_submission as adopt
+    return await _run(adopt(payload))
 
 
 @router.post("/delete")

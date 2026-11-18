@@ -14,21 +14,22 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `type_of` (def) L36
 - `config_of` (def) L42
 
-## services/sec_filings/script_app_service.py (229 lines) - Social Media Script documents for the Social Media portal's backend (app-to-app, see tools/sec_filings/script_app_router.py).
+## services/sec_filings/script_app_service.py (296 lines) - Social Media Script documents for the Social Media portal's backend (app-to-app, see tools/sec_filings/script_app_router.py).
 - `AppServiceError` (class) L36
     - `__init__` (def) L37
-- `user_by_email` (def) L42
-- `_row` (def) L54
-- `build_document` (def) L58 - A SecFilingDocument in the shape of the front's Social Media Script template (data/socialMediaScriptTemplate.ts): the
-    - `para` (def) L72
-- `read_script` (def) L98 - Details and beats of a script document, plus its text as the portal's checks read it (one line per beat part).
-- `create_script` (def) L130
-- `delete_scripts` (def) L144 - Delete script documents (soft, like every delete here) as `actor_email`: their owner or a super admin.
-- `get_script` (def) L171
-- `get_review` (def) L180
-- `send_script` (def) L184 - Invite and send for review as the creator.
-- `act` (def) L201 - A move in the review on a person's behalf: check_in, withdraw, finalize, decide, create_post.
-- `embed_token` (def) L218 - A short-lived sign-in for the iframe, for one person; it only works once the person may open the document.
+- `_ensure_standard_user_role` (def) L42 - Assign the Standard User (`USER`) role if the user has no active role yet.
+- `user_by_email` (def) L79 - Return an active Share Document user for `email`, auto-provisioning them with Standard User role if absent.
+- `_row` (def) L121
+- `build_document` (def) L125 - A SecFilingDocument in the shape of the front's Social Media Script template (data/socialMediaScriptTemplate.ts): the
+    - `para` (def) L139
+- `read_script` (def) L165 - Details and beats of a script document, plus its text as the portal's checks read it (one line per beat part).
+- `create_script` (def) L197
+- `delete_scripts` (def) L211 - Delete script documents (soft, like every delete here) as `actor_email`: their owner or a super admin.
+- `get_script` (def) L238
+- `get_review` (def) L247
+- `send_script` (def) L251 - Invite and send for review as the creator.
+- `act` (def) L268 - A move in the review on a person's behalf: check_in, withdraw, finalize, decide, create_post.
+- `embed_token` (def) L285 - A short-lived sign-in for the iframe, for one person; it only works once the person may open the document.
 
 ## services/sec_filings/script_directory_service.py (64 lines) - The Social Media portal's people, for a script's invite screen.
 - `DirectoryError` (class) L27
@@ -55,15 +56,15 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `save_proposal` (def) L39
 - `add_version` (def) L47
 
-## services/sec_filings/script_review_rules.py (121 lines) - Social Media Script review: who may do what, as pure functions (no database, no events).
+## services/sec_filings/script_review_rules.py (122 lines) - Social Media Script review: who may do what, as pure functions (no database, no events).
 - `ScriptAccess` (class) L31
     - `as_dict` (def) L42
 - `is_script_document` (def) L46
 - `is_required` (def) L50 - Someone whose check-in the review waits for: a reviewer or suggesting reviewer who can edit.
 - `all_checked` (def) L55
 - `compute_access` (def) L60 - What this person may do with the script, or None when they may not see it.
-- `check_vote` (def) L98 - Why this check-in isn't allowed, or None when it is.
-- `finalize_target` (def) L112 - Where a fully checked-in script goes: CHANGES_REQUESTED if anyone asked for changes, LEVEL2_REVIEW when asked or when
+- `check_vote` (def) L99 - Why this check-in isn't allowed, or None when it is.
+- `finalize_target` (def) L113 - Where a fully checked-in script goes: CHANGES_REQUESTED if anyone asked for changes, LEVEL2_REVIEW when asked or when
 
 ## services/sec_filings/script_review_service.py (211 lines) - Social Media Script review: the state of a script's review, who may do what (script_review_rules), and the moves through it: invite, send...
 - `ScriptReviewError` (class) L22 - A move that isn't allowed or doesn't fit the review's state; `status_code` is the HTTP status to answer with.
@@ -87,3 +88,9 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `_secret` (def) L22
 - `require_script_service` (def) L26 - Dependency: the caller is the Social Media portal's backend with `scope`.
     - `guard` (def) L28
+
+## services/sec_filings/script_submission_import.py (88 lines) - Adopt Create Post scripts once; retries never overwrite shared edits or decisions.
+- `_people` (def) L10
+- `_document` (def) L26
+- `_initialize` (def) L47
+- `import_submission` (def) L74

@@ -4,15 +4,16 @@
 
 Each symbol shows its start line (`L<n>`); read from there to the next symbol's line, not the whole file.
 
-## tools/sec_filings/script_app_router.py (65 lines) - App-to-app routes for the Social Media portal's backend: create a script's shared document, read it back, invite and send it, move it thr...
+## tools/sec_filings/script_app_router.py (71 lines) - App-to-app routes for the Social Media portal's backend: create a script's shared document, read it back, invite and send it, move it thr...
 - `_run` (def) L20
 - `create_script` (def) L27 [POST ]
-- `delete_scripts` (def) L34 [POST /delete] - Delete scripts (one, or all the pages of an attached file) as their creator.
-- `read_script` (def) L40 [GET /{document_id}] - The script's details, beats and text, as `email` sees it.
-- `read_review` (def) L46 [GET /{document_id}/review]
-- `send` (def) L51 [POST /{document_id}/send]
-- `act` (def) L56 [POST /{document_id}/actions]
-- `embed_token` (def) L62 [POST /{document_id}/embed-token]
+- `import_submission` (def) L34 [POST /from-submission]
+- `delete_scripts` (def) L40 [POST /delete] - Delete scripts (one, or all the pages of an attached file) as their creator.
+- `read_script` (def) L46 [GET /{document_id}] - The script's details, beats and text, as `email` sees it.
+- `read_review` (def) L52 [GET /{document_id}/review]
+- `send` (def) L57 [POST /{document_id}/send]
+- `act` (def) L62 [POST /{document_id}/actions]
+- `embed_token` (def) L68 [POST /{document_id}/embed-token]
 
 ## tools/sec_filings/script_directory_router.py (20 lines) - The people a script's invite screen offers: the Social Media portal's (see services/sec_filings/script_directory_service.py).
 - `script_users` (def) L14 [GET /script-users]

@@ -68,12 +68,13 @@ def compute_access(status: str, *, is_creator: bool, is_super: bool, mine: Optio
     approver = editor and can_review and not own and status == "IN_REVIEW"
     deciding = manager and not own and status in IN_REVIEW_STATES
     can_edit = (
-        (is_creator and status in EDITING)
+        is_super
+        or (is_creator and status in EDITING)
         or (editor and status == "IN_REVIEW")
         or (manager and not own and status in IN_REVIEW_STATES)
     )
     in_play = status in IN_REVIEW_STATES
-    can_note = can_edit or bool(mine and in_play) or (is_creator and status != "DRAFT") or (manager and status != "DRAFT")
+    can_note = is_super or can_edit or bool(mine and in_play) or (is_creator and status != "DRAFT") or (manager and status != "DRAFT")
     if is_creator:
         role = "CREATOR"
     elif manager:
@@ -86,12 +87,12 @@ def compute_access(status: str, *, is_creator: bool, is_super: bool, mine: Optio
         role = "VIEWER"
     return ScriptAccess(
         role=role, can_edit=can_edit, can_note=can_note,
-        can_submit=is_creator and status in EDITING,
-        can_check_in=editor and status == "IN_REVIEW" and not own,
+        can_submit=(is_creator or is_super) and status in EDITING,
+        can_check_in=(editor or is_super) and status == "IN_REVIEW" and not own,
         can_finalize=approver or (manager and not own and status == "IN_REVIEW"),
         can_decide=deciding,
         can_create_post=status == "APPROVED" and (is_creator or manager),
-        can_delete=(is_creator or manager) and status == "DRAFT",
+        can_delete=is_super or ((is_creator or manager) and status == "DRAFT"),
     )
 
 
