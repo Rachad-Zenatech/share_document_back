@@ -35,6 +35,9 @@ pytesseract>=0.3.13
 pillow>=11.0.0
 python-multipart>=0.0.9
 
+# Cloud Storage (AWS S3)
+boto3>=1.35.0
+
 # Messaging, Event Bus & Microservice Presence
 paho-mqtt>=2.1.0
 aio-pika>=9.5.4

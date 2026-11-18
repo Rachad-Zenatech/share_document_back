@@ -247,6 +247,7 @@ jobs:
           CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS || secrets.FRONTEND_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME || vars.AWS_S3_BUCKET_NAME || secrets.S3_BUCKET_NAME || vars.S3_BUCKET_NAME }}
         run: |
           errors=0
           error() { echo "::error::$1"; errors=$((errors + 1)); }
@@ -302,6 +303,7 @@ jobs:
           if [ -n "$AWS_ACCESS_KEY" ] && [ -z "$AWS_SECURITY_GROUP_ID" ]; then
             warn "AWS_SECURITY_GROUP_ID not set; port 22 must already be open to GitHub runners"
           fi
+          [ -n "$AWS_S3_BUCKET_NAME" ] || warn "AWS_S3_BUCKET_NAME not set; uploaded files will fall back to local UPLOAD_FILES_DIR unless configured in secrets/vars or host .env"
 
           if [ "$errors" -gt 0 ]; then
             echo "[FAIL] $errors required environment variable(s) missing or invalid. Add them to the Zenatech environment secrets."
@@ -371,6 +373,17 @@ jobs:
           RABBITMQ_DEFAULT_USER: ${{ secrets.RABBITMQ_DEFAULT_USER || secrets.RABBITMQ_USER }}
           RABBITMQ_DEFAULT_PASS: ${{ secrets.RABBITMQ_DEFAULT_PASS || secrets.RABBITMQ_PASSWORD }}
           RABBITMQ_URL: ${{ secrets.RABBITMQ_URL || 'amqp://guest:guest@host.docker.internal:5672/' }}
+          AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME || vars.AWS_S3_BUCKET_NAME || secrets.S3_BUCKET_NAME || vars.S3_BUCKET_NAME }}
+          AWS_S3_REGION: ${{ secrets.AWS_S3_REGION || vars.AWS_S3_REGION || secrets.AWS_REGION || vars.AWS_REGION || 'ca-central-1' }}
+          AWS_S3_EXPECTED_BUCKET_OWNER: ${{ secrets.AWS_S3_EXPECTED_BUCKET_OWNER || vars.AWS_S3_EXPECTED_BUCKET_OWNER }}
+          AWS_S3_SERVER_SIDE_ENCRYPTION: ${{ secrets.AWS_S3_SERVER_SIDE_ENCRYPTION || vars.AWS_S3_SERVER_SIDE_ENCRYPTION }}
+          AWS_S3_KMS_KEY_ID: ${{ secrets.AWS_S3_KMS_KEY_ID || vars.AWS_S3_KMS_KEY_ID }}
+          AWS_S3_BUCKET_KEY_ENABLED: ${{ vars.AWS_S3_BUCKET_KEY_ENABLED }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID || env.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY || env.AWS_SECRET_ACCESS_KEY }}
+          UPLOAD_S3_PREFIX: ${{ secrets.UPLOAD_S3_PREFIX || vars.UPLOAD_S3_PREFIX || 'data' }}
+          UPLOAD_S3_STRICT: ${{ vars.UPLOAD_S3_STRICT }}
+          MAX_UPLOAD_BYTES: ${{ vars.MAX_UPLOAD_BYTES }}
         run: |
           install -m 600 /dev/null ec2-key.pem
           printf '%s\n' "$EC2_SSH_KEY" > ec2-key.pem
@@ -453,6 +466,16 @@ jobs:
             fi
             echo "DATA_PATH=/app/data"
             echo "UPLOAD_FILES_DIR=/app/data/upload_files"
+            if [ -n "$AWS_S3_BUCKET_NAME" ]; then
+              printf 'AWS_S3_BUCKET_NAME=%s\n' "$AWS_S3_BUCKET_NAME"
+            fi
+            printf 'AWS_S3_REGION=%s\n' "$AWS_S3_REGION"
+            printf 'UPLOAD_S3_PREFIX=%s\n' "$UPLOAD_S3_PREFIX"
+            for name in AWS_S3_EXPECTED_BUCKET_OWNER AWS_S3_SERVER_SIDE_ENCRYPTION AWS_S3_KMS_KEY_ID AWS_S3_BUCKET_KEY_ENABLED UPLOAD_S3_STRICT AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY MAX_UPLOAD_BYTES; do
+              if [ -n "${!name}" ]; then
+                printf '%s=%s\n' "$name" "${!name}"
+              fi
+            done
             echo "AUTH_COOKIE_SECURE=true"
             echo "SESSION_COOKIE_SECURE=true"
           } > .env.production

@@ -24,7 +24,7 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - postgresql_db/schemas/setup_pbac_schema.py (381 lines) - setup pbac schema (schemas)
 - postgresql_db/setup_rls_security.py (348 lines) - RDS PostgreSQL Role-Based Access Control & Row-Level Security (RLS) Setup.
 - scripts/script_submission_import_eval.py (128 lines) - Shared submission import retry and access regressions; no live database writes.
-- server.py (328 lines) - server
+- server.py (330 lines) - server
 - services/ai/core/assistant_chat_service.py (254 lines) - Assistant chat: answers questions about the portal, streamed as SSE.
 - services/ai/core/gemini_service.py (136 lines) - Gemini calls with model rotation (ported from the admin portal's gemini_service).
 - services/ai/core/model_router.py (85 lines) - Model routing: picks which Gemini models a request tries first, by feature and by how demanding the request is.
@@ -69,16 +69,21 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - services/shared/core/http_middleware.py (299 lines) - HTTP middleware registration for session, rate limiting, security headers, observability, and CORS.
 - services/shared/core/logging_service.py (118 lines) - Structured application logging suitable for container stdout and CloudWatch Logs.
 - services/shared/core/secret_config.py (18 lines) - Validated secret lookup from environment variables with no hardcoded fallbacks.
+- services/shared/storage/s3_storage_service.py (263 lines) - AWS S3 storage helper with hardened defaults, presigned URLs, and local-cache hydration.
+- services/shared/storage/upload_archive_service.py (345 lines) - Upload archive storage: S3 primary in production with local UPLOAD_FILES_DIR cache/fallback.
+- services/shared/storage/upload_security_service.py (68 lines) - Upload validation helpers: extension allowlists and bounded streaming reads.
 - tools/microsoft_graph/graph_router.py (46 lines) - Graph User Search Router Exposes a search endpoint that proxies Microsoft Graph /v1.0/users?$search=...
 - tools/notifications/message_hub_router.py (57 lines) - Message Hub endpoints for the topbar servers dropdown (mounted at /api/message-hub, authenticated).
 - tools/notifications/notification_router.py (84 lines) - notification router (notifications)
 - tools/notifications/notification_ws_router.py (120 lines) - Notification WebSocket Router Provides: - WebSocket /ws/notifications: Real-time notification delivery.
+- tools/sec_filings/pdf_import_routes.py (58 lines) - PDF Import routes for SEC filing documents, with best-effort S3 archival.
 - tools/sec_filings/script_app_router.py (71 lines) - App-to-app routes for the Social Media portal's backend: create a script's shared document, read it back, invite and send it, move it thr...
 - tools/sec_filings/script_directory_router.py (20 lines) - The people a script's invite screen offers: the Social Media portal's (see services/sec_filings/script_directory_service.py).
 - tools/sec_filings/script_review_router.py (76 lines) - Social Media Script review routes: who may do what on a script document, inviting and sending it, checking in, routing, the manager's dec...
-- tools/sec_filings/sec_filings.py (577 lines) - SEC filing routes: financial statement table templates.
+- tools/sec_filings/sec_filings.py (550 lines) - SEC filing routes: financial statement table templates.
 - tools/shared/auth_router.py (327 lines) - auth router (shared)
 - tools/shared/log_router.py (74 lines) - log router (shared)
 - tools/shared/observability.py (75 lines) - observability (shared)
 - tools/shared/rbac_router.py (204 lines) - rbac router (shared)
 - tools/shared/search.py (177 lines) - Static system pages for quick navigation search with explicit permission codes
+- tools/shared/upload_files.py (160 lines) - Uploaded files & media bucket endpoints backed by S3 and local cache storage.

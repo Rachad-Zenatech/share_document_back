@@ -36,6 +36,7 @@ from tools.notifications.notification_router import notification_router
 from tools.notifications.notification_ws_router import notification_ws_router
 from tools.shared.observability import router as observability_router
 from tools.shared.log_router import router as log_router
+from tools.shared.upload_files import router as upload_files_router
 from tools.microsoft_graph.graph_router import router as graph_router
 from tools.sec_filings.sec_filings import router as sec_filings_router
 from services.sec_filings.documents.sec_filing_template_service import bootstrap_sec_filing_table_templates
@@ -310,6 +311,7 @@ app.include_router(notification_ws_router, tags=["Notifications"])
 app.include_router(log_router, prefix="/api", tags=["Logs"])
 app.include_router(observability_router, prefix="/api", tags=["Observability"])
 app.include_router(graph_router, prefix="/api", tags=["Microsoft Graph"], dependencies=authenticated)
+app.include_router(upload_files_router, prefix="/api/upload-files", tags=["Upload Files"], dependencies=authenticated)
 app.include_router(sec_filings_router, prefix="/api", tags=["SEC Filings"])
 
 register_http_middlewares(

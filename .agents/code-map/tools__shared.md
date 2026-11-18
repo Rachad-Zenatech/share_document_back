@@ -58,3 +58,12 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `SearchResult` (class) L11
 - `global_search` (def) L29 [GET ]
     - `has_perm` (def) L50
+
+## tools/shared/upload_files.py (160 lines) - Uploaded files & media bucket endpoints backed by S3 and local cache storage.
+- `_content_disposition` (def) L44
+- `list_uploaded_files` (def) L50 [GET ] - List archived uploaded files, optionally filtered by upload_type or company_name.
+- `upload_media_asset` (def) L64 [POST /media] - Upload a media image for the Company Media Bucket to S3 (with local cache).
+- `view_uploaded_file` (def) L94 [GET /{file_id}/view] - Stream an uploaded file inline (or sandboxed/attachment for unsafe content types).
+- `download_uploaded_file` (def) L115 [GET /{file_id}/download] - Download an archived upload as an attachment.
+- `get_uploaded_file_presigned_url` (def) L133 [GET /{file_id}/presigned-url] - Return a short-lived pre-signed S3 download URL for an S3-backed upload.
+- `delete_uploaded_file` (def) L154 [DELETE /{file_id}] - Delete an archived upload from S3 and local cache.

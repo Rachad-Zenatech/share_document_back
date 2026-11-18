@@ -4,6 +4,10 @@
 
 Each symbol shows its start line (`L<n>`); read from there to the next symbol's line, not the whole file.
 
+## tools/sec_filings/pdf_import_routes.py (58 lines) - PDF Import routes for SEC filing documents, with best-effort S3 archival.
+- `start_pdf_import_endpoint` (def) L20 [POST /import/pdf] - Accept an uploaded PDF, start background conversion, and archive the file best-effort.
+- `get_pdf_import_endpoint` (def) L48 [GET /import/pdf/{job_id}] - Return status and converted blocks for an active PDF import job.
+
 ## tools/sec_filings/script_app_router.py (71 lines) - App-to-app routes for the Social Media portal's backend: create a script's shared document, read it back, invite and send it, move it thr...
 - `_run` (def) L20
 - `create_script` (def) L27 [POST ]
@@ -30,42 +34,40 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `decide_script` (def) L68 [POST /decision]
 - `create_post_from_script` (def) L73 [POST /create-post]
 
-## tools/sec_filings/sec_filings.py (577 lines) - SEC filing routes: financial statement table templates.
-- `list_financial_table_templates` (def) L95
-- `create_financial_table_template` (def) L107
-- `get_financial_table_template` (def) L127
-- `update_financial_table_template` (def) L142
-- `delete_financial_table_template` (def) L157 [DELETE /table-templates/{template_id}]
-- `_document_error` (def) L177
-- `list_sec_documents` (def) L185 [GET /documents]
-- `import_sec_documents` (def) L190 [POST /documents/import]
-- `get_sec_document` (def) L198 [GET /documents/{document_id}]
-- `save_sec_document` (def) L206 [PUT /documents/{document_id}]
-- `delete_sec_document` (def) L231 [DELETE /documents/{document_id}]
-- `list_sec_document_proposals` (def) L239 [GET /documents/{document_id}/proposals]
-- `get_sec_proposal` (def) L247 [GET /proposals/{proposal_id}]
-- `save_sec_proposal` (def) L255 [PUT /proposals/{proposal_id}]
-- `list_sec_document_versions` (def) L267 [GET /documents/{document_id}/versions]
-- `add_sec_document_version` (def) L275 [POST /documents/{document_id}/versions]
-- `start_pdf_import_endpoint` (def) L294 [POST /import/pdf]
-- `get_pdf_import_endpoint` (def) L307 [GET /import/pdf/{job_id}]
-- `get_guest_session_endpoint` (def) L325 [GET /guest/session]
-- `save_guest_proposal_endpoint` (def) L333 [PUT /guest/proposal]
-- `list_sec_workflows` (def) L355 [GET /workflows]
-- `create_sec_workflow` (def) L362 [POST /workflows]
-- `get_sec_workflow` (def) L372 [GET /workflows/{workflow_id}]
-- `update_sec_workflow` (def) L383 [PUT /workflows/{workflow_id}]
-- `delete_sec_workflow` (def) L398 [DELETE /workflows/{workflow_id}]
-- `set_sec_workflow_documents` (def) L409 [PUT /workflows/{workflow_id}/documents]
-- `get_sec_document_workflow` (def) L421 [GET /documents/{document_id}/workflow]
-- `assign_sec_document_workflow` (def) L435 [PUT /documents/{document_id}/workflow]
-- `unassign_sec_document_workflow` (def) L451 [DELETE /documents/{document_id}/workflow]
-- `dispatch_mobile_signature_envelope` (def) L470 - Registers an electronic signature envelope for mobile phone SMS/QR dispatch.
-- `get_mobile_signature_status` (def) L484 - Polls or retrieves the signing status of a mobile signature envelope.
-- `complete_mobile_signature_envelope` (def) L499 - Finalizes and records a signature completed from a phone / mobile canvas.
-- `delete_mobile_signature_envelope` (def) L515 - Deletes and removes signature envelope immediately so no signature data is retained.
-- `_require_spreadsheet_access` (def) L527
-- `get_attached_spreadsheet_endpoint` (def) L534 [GET /documents/{document_id}/spreadsheet]
-- `delete_attached_spreadsheet_endpoint` (def) L546 [DELETE /documents/{document_id}/spreadsheet]
-- `save_attached_spreadsheet_endpoint` (def) L556 [PUT /documents/{document_id}/spreadsheet]
-- `update_spreadsheet_cell_endpoint` (def) L568 [PATCH /documents/{document_id}/spreadsheet/cells]
+## tools/sec_filings/sec_filings.py (550 lines) - SEC filing routes: financial statement table templates.
+- `list_financial_table_templates` (def) L96
+- `create_financial_table_template` (def) L108
+- `get_financial_table_template` (def) L128
+- `update_financial_table_template` (def) L143
+- `delete_financial_table_template` (def) L158 [DELETE /table-templates/{template_id}]
+- `_document_error` (def) L178
+- `list_sec_documents` (def) L186 [GET /documents]
+- `import_sec_documents` (def) L191 [POST /documents/import]
+- `get_sec_document` (def) L199 [GET /documents/{document_id}]
+- `save_sec_document` (def) L207 [PUT /documents/{document_id}]
+- `delete_sec_document` (def) L232 [DELETE /documents/{document_id}]
+- `list_sec_document_proposals` (def) L240 [GET /documents/{document_id}/proposals]
+- `get_sec_proposal` (def) L248 [GET /proposals/{proposal_id}]
+- `save_sec_proposal` (def) L256 [PUT /proposals/{proposal_id}]
+- `list_sec_document_versions` (def) L268 [GET /documents/{document_id}/versions]
+- `add_sec_document_version` (def) L276 [POST /documents/{document_id}/versions]
+- `get_guest_session_endpoint` (def) L298 [GET /guest/session]
+- `save_guest_proposal_endpoint` (def) L306 [PUT /guest/proposal]
+- `list_sec_workflows` (def) L328 [GET /workflows]
+- `create_sec_workflow` (def) L335 [POST /workflows]
+- `get_sec_workflow` (def) L345 [GET /workflows/{workflow_id}]
+- `update_sec_workflow` (def) L356 [PUT /workflows/{workflow_id}]
+- `delete_sec_workflow` (def) L371 [DELETE /workflows/{workflow_id}]
+- `set_sec_workflow_documents` (def) L382 [PUT /workflows/{workflow_id}/documents]
+- `get_sec_document_workflow` (def) L394 [GET /documents/{document_id}/workflow]
+- `assign_sec_document_workflow` (def) L408 [PUT /documents/{document_id}/workflow]
+- `unassign_sec_document_workflow` (def) L424 [DELETE /documents/{document_id}/workflow]
+- `dispatch_mobile_signature_envelope` (def) L443 - Registers an electronic signature envelope for mobile phone SMS/QR dispatch.
+- `get_mobile_signature_status` (def) L457 - Polls or retrieves the signing status of a mobile signature envelope.
+- `complete_mobile_signature_envelope` (def) L472 - Finalizes and records a signature completed from a phone / mobile canvas.
+- `delete_mobile_signature_envelope` (def) L488 - Deletes and removes signature envelope immediately so no signature data is retained.
+- `_require_spreadsheet_access` (def) L500
+- `get_attached_spreadsheet_endpoint` (def) L507 [GET /documents/{document_id}/spreadsheet]
+- `delete_attached_spreadsheet_endpoint` (def) L519 [DELETE /documents/{document_id}/spreadsheet]
+- `save_attached_spreadsheet_endpoint` (def) L529 [PUT /documents/{document_id}/spreadsheet]
+- `update_spreadsheet_cell_endpoint` (def) L541 [PATCH /documents/{document_id}/spreadsheet/cells]

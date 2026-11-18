@@ -4,14 +4,14 @@
 
 Each symbol shows its start line (`L<n>`); read from there to the next symbol's line, not the whole file.
 
-## server.py (328 lines) - server
-- `_graph_background_sync_enabled` (def) L53
-- `_env_flag` (def) L57
-- `lifespan` (def) L62
-- `MessageItem` (class) L192
-- `ChatRequest` (class) L196
-- `ai_chat` (def) L205 [POST /ai/chat]
-- `root` (def) L251 [GET /]
-- `health_live` (def) L255 [GET /health/live]
-- `health_ready` (def) L259 [GET /health/ready]
-- `integration_status` (def) L268 [GET /api/integration-status, GET /api/integration/status]
+## server.py (330 lines) - server
+- `_graph_background_sync_enabled` (def) L54
+- `_env_flag` (def) L58
+- `lifespan` (def) L63
+- `MessageItem` (class) L193
+- `ChatRequest` (class) L197
+- `ai_chat` (def) L206 [POST /ai/chat]
+- `root` (def) L252 [GET /]
+- `health_live` (def) L256 [GET /health/live]
+- `health_ready` (def) L260 [GET /health/ready]
+- `integration_status` (def) L269 [GET /api/integration-status, GET /api/integration/status]

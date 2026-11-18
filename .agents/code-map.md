@@ -27,7 +27,8 @@ to find the right file.
 | .agents/code-map/services__sec_filings__workflow.md | 3 | 2 KB |
 | .agents/code-map/services__shared__auth.md | 4 | 3 KB |
 | .agents/code-map/services__shared__core.md | 5 | 3 KB |
+| .agents/code-map/services__shared__storage.md | 3 | 3 KB |
 | .agents/code-map/tools__microsoft_graph.md | 1 | 1 KB |
 | .agents/code-map/tools__notifications.md | 3 | 2 KB |
-| .agents/code-map/tools__sec_filings.md | 4 | 5 KB |
-| .agents/code-map/tools__shared.md | 5 | 3 KB |
+| .agents/code-map/tools__sec_filings.md | 5 | 5 KB |
+| .agents/code-map/tools__shared.md | 6 | 4 KB |

@@ -18,7 +18,7 @@
       "reason": "Over the limit when the check was introduced; split it when you next work on it."
     },
     "tools/sec_filings/sec_filings.py": {
-      "max_lines": 576,
+      "max_lines": 549,
       "reason": "Over the limit when the check was introduced; split it when you next work on it."
     }
   },
