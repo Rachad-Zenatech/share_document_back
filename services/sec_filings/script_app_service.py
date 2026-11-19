@@ -123,18 +123,27 @@ def _row(row_id: str, kind: str, cells: List[str], **extra: Any) -> Dict[str, An
 
 
 def build_document(doc_id: str, owner: Dict[str, Any], title: str, details: Dict[str, str], rows: List[Dict[str, str]],
-                   external_ref: Optional[Dict[str, Any]], number: int = 1) -> Dict[str, Any]:
+                   external_ref: Optional[Dict[str, Any]], number: int = 1,
+                   headers: Optional[List[str]] = None, table_rows: Optional[List[List[str]]] = None) -> Dict[str, Any]:
     """A SecFilingDocument in the shape of the front's Social Media Script template (data/socialMediaScriptTemplate.ts): the
     page of the Social Media portal's script (numbered title, storyline, hook score | duration | lane, beats, footage note)."""
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     stamp = uuid.uuid4().hex[:8]
-    # The table draws its own header row from `headers`: the rows are only the beats (a header row here would show twice).
+    active_headers = [str(h).strip() or f"Column {i + 1}" for i, h in enumerate(headers or [])] or list(SCRIPT_HEADERS)
+    is_default_layout = active_headers == SCRIPT_HEADERS
+    col_count = len(active_headers)
+    if table_rows is not None and len(table_rows) > 0:
+        raw_rows = [[str(c or "") for c in ([*r, *([""] * col_count)][:col_count])] for r in table_rows]
+    elif is_default_layout:
+        raw_rows = [[r.get("time", ""), r.get("visual", ""), r.get("voiceover", ""), r.get("onscreen", "")] for r in (rows or [{}] * 5)]
+    else:
+        raw_rows = [[""] * col_count for _ in range(5)]
     beats = [
-        _row(f"sc-r{i + 1}", "data", [r.get("time", ""), r.get("visual", ""), r.get("voiceover", ""), r.get("onscreen", "")],
-             **({"shading": BAND_FILL} if i % 2 else {}))
-        for i, r in enumerate(rows or [{}] * 5)]
+        _row(f"sc-r{i + 1}", "data", cells, **({"shading": BAND_FILL} if i % 2 else {}))
+        for i, cells in enumerate(raw_rows)]
     facts = " | ".join(x for x in (f"Hook score {details.get('Hook score', '')}".strip(), details.get("Duration") or "about 35 seconds",
                                    details.get("Lane") or "Green lane") if x)
+    col_widths = ["7%", "29%", "40%", "24%"] if is_default_layout else [f"{round(100 / col_count)}%" for _ in range(col_count)]
 
     def para(n: int, text: str, **extra: Any) -> Dict[str, Any]:
         return {"id": f"blk-{stamp}-{n}", "type": "paragraph", "section": "Script", "text": text, "alignment": "left",
@@ -145,9 +154,10 @@ def build_document(doc_id: str, owner: Dict[str, Any], title: str, details: Dict
          "bold": True, "color": HEADER_FILL, "spacingBottom": 4, "fontFamily": FONT_FAMILY},
         para(1, f"Storyline: {details.get('Storyline', '')}", spacingBottom=4),
         para(2, facts, color="#6b7280", spacingBottom=8),
-        {"id": f"blk-{stamp}-3", "type": "financial_table", "section": "Script", "title": "Script", "headers": SCRIPT_HEADERS,
-         "headerShading": HEADER_FILL, "headerTextColor": "#FFFFFF", "boldColumns": [3], "columnAlignments": ["left"] * 4,
-         "columnWidths": ["7%", "29%", "40%", "24%"], "spacingTop": 2, "spacingBottom": 8, "rows": beats},
+        {"id": f"blk-{stamp}-3", "type": "financial_table", "section": "Script", "title": "Script", "headers": active_headers,
+         "headerShading": HEADER_FILL, "headerTextColor": "#FFFFFF", "boldColumns": [3] if is_default_layout else [],
+         "columnAlignments": ["left"] * col_count,
+         "columnWidths": col_widths, "spacingTop": 2, "spacingBottom": 8, "rows": beats},
     ]
     if (details.get("Description") or "").strip():  # the note line is there when the script has one, as in the document
         blocks.append(para(4, f"Footage and compliance note: {details['Description']}"))
@@ -195,12 +205,13 @@ def read_script(document: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def create_script(email: str, title: str, details: Dict[str, str], rows: List[Dict[str, str]],
-                        external_ref: Optional[Dict[str, Any]], number: int = 1) -> Dict[str, Any]:
+                        external_ref: Optional[Dict[str, Any]], number: int = 1,
+                        headers: Optional[List[str]] = None, table_rows: Optional[List[List[str]]] = None) -> Dict[str, Any]:
     # Every script, blank or attached, is made from the Social Media Script template (build_document): the same page, tables and
     # checks whoever creates it and however; its beats come from the attached file or are left empty.
     owner = await user_by_email(email)
     doc_id = f"doc-social-script-{uuid.uuid4().hex[:12]}"
-    document = build_document(doc_id, owner, title, details, rows, external_ref, number)
+    document = build_document(doc_id, owner, title, details, rows, external_ref, number, headers, table_rows)
     result = await save_document(owner["id"], doc_id, document, None, rules.TEMPLATE_ID, owner["name"])
     return {"document_id": doc_id, "revision": result["revision"]}
 

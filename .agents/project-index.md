@@ -10,7 +10,7 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - mcp_tools/prompts.py (16 lines) - mcp_tools/prompts.py
 - mcp_tools/shared/permissions.py (54 lines) - permissions (shared)
 - models/notifications/notification_model.py (34 lines) - notification model (notifications)
-- models/sec_filings/script_review_model.py (108 lines) - Pydantic models for the Social Media Script review workflow (see services/sec_filings/script_review_rules.py).
+- models/sec_filings/script_review_model.py (111 lines) - Pydantic models for the Social Media Script review workflow (see services/sec_filings/script_review_rules.py).
 - models/sec_filings/sec_filing_model.py (382 lines) - Pydantic models for SEC filing financial statement table templates.
 - models/shared/rbac_model.py (240 lines) - rbac model (shared)
 - postgresql_db/database.py (282 lines) - Optional dotenv import for loading .env and local overrides during development
@@ -48,12 +48,12 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - services/sec_filings/documents/sec_filing_spreadsheet_service.py (200 lines) - Service for managing attached dynamic spreadsheets per SEC document.
 - services/sec_filings/documents/sec_filing_template_service.py (222 lines) - DB logic for SEC filing financial statement table templates.
 - services/sec_filings/documents/sec_pdf_import_service.py (519 lines) - Convert an uploaded PDF into the SEC editor's document blocks.
-- services/sec_filings/script_app_service.py (296 lines) - Social Media Script documents for the Social Media portal's backend (app-to-app, see tools/sec_filings/script_app_router.py).
+- services/sec_filings/script_app_service.py (307 lines) - Social Media Script documents for the Social Media portal's backend (app-to-app, see tools/sec_filings/script_app_router.py).
 - services/sec_filings/script_directory_service.py (64 lines) - The Social Media portal's people, for a script's invite screen.
 - services/sec_filings/script_review_events.py (57 lines) - Events of the Social Media Script review, for the portal's event bus (MQTT and RabbitMQ).
 - services/sec_filings/script_review_flow.py (137 lines) - Social Media Script review: the moves during review (check in, finalize, decide, create the post) and the events for proposals and merges.
 - services/sec_filings/script_review_guard.py (54 lines) - Social Media Script reviews: the three document writes, guarded.
-- services/sec_filings/script_review_rules.py (122 lines) - Social Media Script review: who may do what, as pure functions (no database, no events).
+- services/sec_filings/script_review_rules.py (123 lines) - Social Media Script review: who may do what, as pure functions (no database, no events).
 - services/sec_filings/script_review_service.py (211 lines) - Social Media Script review: the state of a script's review, who may do what (script_review_rules), and the moves through it: invite, send...
 - services/sec_filings/script_service_auth.py (43 lines) - Who may call the Social Media portal's script API (tools/sec_filings/script_app_router.py).
 - services/sec_filings/script_submission_import.py (88 lines) - Adopt Create Post scripts once; retries never overwrite shared edits or decisions.

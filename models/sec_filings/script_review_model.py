@@ -66,6 +66,9 @@ class AppCreateScript(BaseModel):
     external_ref: Optional[dict] = None
     # The script's number in its document, shown in its title ("2. The movie star's patent").
     number: int = Field(default=1, ge=1, le=999)
+    # Optional custom table columns/rows when the Social Media portal has a custom uploaded default template.
+    headers: Optional[List[str]] = None
+    table_rows: Optional[List[List[str]]] = None
 
 
 class AppInvitee(BaseModel):

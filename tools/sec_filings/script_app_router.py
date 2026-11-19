@@ -28,7 +28,7 @@ async def _run(coro):
 async def create_script(payload: AppCreateScript, _: Dict[str, Any] = write_scope):
     details = {str(k): str(v) for k, v in (payload.details or {}).items()}
     return await _run(app.create_script(payload.user_email, payload.title, details, [b.model_dump() for b in payload.rows],
-                                        payload.external_ref, payload.number))
+                                        payload.external_ref, payload.number, payload.headers, payload.table_rows))
 
 
 @router.post("/from-submission")

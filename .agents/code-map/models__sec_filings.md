@@ -4,7 +4,7 @@
 
 Each symbol shows its start line (`L<n>`); read from there to the next symbol's line, not the whole file.
 
-## models/sec_filings/script_review_model.py (108 lines) - Pydantic models for the Social Media Script review workflow (see services/sec_filings/script_review_rules.py).
+## models/sec_filings/script_review_model.py (111 lines) - Pydantic models for the Social Media Script review workflow (see services/sec_filings/script_review_rules.py).
 - `ScriptInvitee` (class) L12
 - `ScriptSendPayload` (class) L18 - Invite reviewers (replacing the list) and send the script for review.
 - `ScriptInvitePayload` (class) L26
@@ -14,11 +14,11 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `ScriptCreatePostPayload` (class) L45
 - `AppBeat` (class) L52
 - `AppCreateScript` (class) L59 - Make a script document for `user_email`.
-- `AppInvitee` (class) L71
-- `AppDelete` (class) L79 - Delete script documents on behalf of their creator (one call for one script or for a whole attached file).
-- `AppSend` (class) L85
-- `AppAct` (class) L92
-- `AppImportSubmission` (class) L101 - Idempotently adopt an existing submitted post into the shared script workflow.
+- `AppInvitee` (class) L74
+- `AppDelete` (class) L82 - Delete script documents on behalf of their creator (one call for one script or for a whole attached file).
+- `AppSend` (class) L88
+- `AppAct` (class) L95
+- `AppImportSubmission` (class) L104 - Idempotently adopt an existing submitted post into the shared script workflow.
 
 ## models/sec_filings/sec_filing_model.py (382 lines) - Pydantic models for SEC filing financial statement table templates.
 - `SecTableRowPayload` (class) L26 - One row of a financial statement table.
