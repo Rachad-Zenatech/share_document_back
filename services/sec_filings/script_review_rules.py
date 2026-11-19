@@ -54,8 +54,8 @@ def is_required(collab: Dict[str, Any]) -> bool:
 
 def all_checked(status: str, collaborators: List[Dict[str, Any]]) -> bool:
     required = [c for c in collaborators if is_required(c)]
-    decided = any(c.get("vote") in ("APPROVE", "CHANGES") for c in required)
-    return status == "IN_REVIEW" and bool(required) and (decided or all(c.get("vote") for c in required))
+    decided = any(c.get("vote") in ("APPROVE", "CHANGES") for c in collaborators)
+    return status == "IN_REVIEW" and (decided or (bool(required) and all(c.get("vote") for c in required)))
 
 
 def compute_access(status: str, *, is_creator: bool, is_super: bool, mine: Optional[Dict[str, Any]]) -> Optional[ScriptAccess]:
