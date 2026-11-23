@@ -21,7 +21,7 @@ to find the right file.
 | .agents/code-map/services__ai__core.md | 4 | 3 KB |
 | .agents/code-map/services__ai__observability.md | 3 | 3 KB |
 | .agents/code-map/services__microsoft_graph.md | 2 | 2 KB |
-| .agents/code-map/services__notifications.md | 7 | 7 KB |
+| .agents/code-map/services__notifications.md | 8 | 7 KB |
 | .agents/code-map/services__sec_filings.md | 11 | 6 KB |
 | .agents/code-map/services__sec_filings__documents.md | 5 | 4 KB |
 | .agents/code-map/services__sec_filings__workflow.md | 3 | 2 KB |

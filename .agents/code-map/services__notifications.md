@@ -4,6 +4,11 @@
 
 Each symbol shows its start line (`L<n>`); read from there to the next symbol's line, not the whole file.
 
+## services/notifications/audit_hub_publisher.py (94 lines) - Publish local audit log records to the CEO Dashboard via the RabbitMQ Message Hub.
+- `_publish_audit_log_async` (def) L15
+- `publish_audit_log_to_hub` (def) L27 - Fire-and-forget dispatch of an audit log entry to the CEO Dashboard over Message Hub.
+- `publish_audit_log_from_conn` (def) L68 - Resolve optional actor details from conn and publish the audit log to Message Hub.
+
 ## services/notifications/mqtt_presence.py (293 lines) - MQTT Service Presence & Event-Driven Messaging Component for Share Document.
 - `get_default_instance_id` (def) L31
 - `MqttServicePresence` (class) L37 - Manages long-lived MQTT connection for microservice availability announcements.

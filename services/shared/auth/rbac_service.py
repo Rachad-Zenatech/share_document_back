@@ -16,9 +16,9 @@ async def log_audit(conn, actor_id: UUID, action: str, entity_type: str, entity_
     """
     old_json = json.dumps(old_value, default=str) if old_value else None
     new_json = json.dumps(new_value, default=str) if new_value else None
-
-    # inet type requires string, but asyncpg handles it if passed as string
+    from services.notifications.audit_hub_publisher import publish_audit_log_from_conn
     await conn.execute(sql, actor_id, action, entity_type, str(entity_id) if entity_id is not None else None, old_json, new_json, ip, ua)
+    await publish_audit_log_from_conn(conn, action=action, entity_type=entity_type, entity_id=entity_id, actor_user_id=actor_id, old_value=old_value, new_value=new_value, ip_address=ip, user_agent=ua)
 
 # --- AUDIT LOGS ---
 async def get_audit_logs():

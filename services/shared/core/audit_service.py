@@ -15,6 +15,7 @@ async def log_audit_event(
     Records an event in the audit_logs table.
     """
     pool = get_pool()
+    actor_name, actor_email = None, None
     async with pool.acquire() as conn:
         await conn.execute(
             """
@@ -27,6 +28,19 @@ async def log_audit_event(
             user_id,
             json.dumps(changes, default=str) if changes else None
         )
+        if user_id:
+            try:
+                u = await conn.fetchrow("SELECT full_name, email FROM users WHERE id = $1", user_id)
+                if u:
+                    actor_name, actor_email = u["full_name"], u["email"]
+            except Exception:
+                pass
+    from services.notifications.audit_hub_publisher import publish_audit_log_to_hub
+    publish_audit_log_to_hub(
+        action=action, entity_type=entity_type, entity_id=entity_id,
+        actor_user_id=user_id, actor_name=actor_name, actor_email=actor_email,
+        new_value=changes,
+    )
 
 async def get_audit_logs(
     limit: int = 50,

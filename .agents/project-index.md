@@ -34,6 +34,7 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - services/ai/observability/ai_usage_service.py (141 lines) - AI Usage Limits Caps how often Gemini runs, so one person (or a stuck loop) can't use up the provider quota or run up cost.
 - services/microsoft_graph/graph_service.py (420 lines) - Microsoft Graph API client for employee profile sync.
 - services/microsoft_graph/graph_sync_job.py (132 lines) - Periodic Microsoft Graph sync for already-known employees.
+- services/notifications/audit_hub_publisher.py (94 lines) - Publish local audit log records to the CEO Dashboard via the RabbitMQ Message Hub.
 - services/notifications/mqtt_presence.py (293 lines) - MQTT Service Presence & Event-Driven Messaging Component for Share Document.
 - services/notifications/notification_service.py (211 lines) - notification service (notifications)
 - services/notifications/rabbitmq_config.py (196 lines) - RabbitMQ / Message Hub configuration: env-driven connection settings, exchange names and the hub server registry.
@@ -64,7 +65,7 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - services/shared/auth/microsoft_auth_service.py (231 lines) - Microsoft Entra SSO claims parsing, user provisioning, and department resolution.
 - services/shared/auth/rbac_service.py (746 lines) - Utility for audit logging
 - services/shared/auth/service_security_policy.py (248 lines) - Enterprise Application Security & Scope Authorization Policy Defines the strict Application-to-Application Access Matrix (Machine-to-Mach...
-- services/shared/core/audit_service.py (127 lines) - audit service (shared core)
+- services/shared/core/audit_service.py (141 lines) - audit service (shared core)
 - services/shared/core/cache_service.py (183 lines) - cache service (shared core)
 - services/shared/core/http_middleware.py (299 lines) - HTTP middleware registration for session, rate limiting, security headers, observability, and CORS.
 - services/shared/core/logging_service.py (118 lines) - Structured application logging suitable for container stdout and CloudWatch Logs.

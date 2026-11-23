@@ -4,9 +4,9 @@
 
 Each symbol shows its start line (`L<n>`); read from there to the next symbol's line, not the whole file.
 
-## services/shared/core/audit_service.py (127 lines) - audit service (shared core)
+## services/shared/core/audit_service.py (141 lines) - audit service (shared core)
 - `log_audit_event` (def) L7 - Records an event in the audit_logs table.
-- `get_audit_logs` (def) L31
+- `get_audit_logs` (def) L45
 
 ## services/shared/core/cache_service.py (183 lines) - cache service (shared core)
 - `AsyncInMemoryCache` (class) L15 - Lightweight in-memory cache with TTL expiration, LRU eviction, and key/prefix invalidation.
