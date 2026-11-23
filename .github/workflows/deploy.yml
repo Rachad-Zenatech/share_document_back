@@ -402,6 +402,9 @@ jobs:
               git fetch origin main && \
               git reset --hard origin/main
             fi
+            cd ~/share_document_back
+            # Agent/AI tooling lives in GitHub only: never keep it on the server.
+            rm -rf .agents .cursor .claude .cursorrules AGENTS.md CLAUDE.md GEMINI.md .antigravityignore
           "
 
           {
