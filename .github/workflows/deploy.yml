@@ -37,9 +37,15 @@ jobs:
         run: |
           python -m compileall -q .
 
-      - name: Run Ruff Lint
+      # Real errors fail the build: syntax errors and undefined names.
+      - name: Ruff (errors)
         run: |
-          ruff check . --ignore E501 || true
+          ruff check . --select E9,F63,F7,F82
+
+      # Style issues are reported but don't block yet (there's a backlog of them to clear first).
+      - name: Ruff (style report)
+        run: |
+          ruff check . --ignore E501 --statistics || true
 
       - name: Run Pytest
         run: |
