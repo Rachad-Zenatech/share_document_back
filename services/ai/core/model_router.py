@@ -68,6 +68,10 @@ def base_tier(feature: str) -> str:
 
 def route(feature: str, *, prompt_chars: int = 0, attachments: int = 0, high_stakes: bool = False) -> Route:
     """The models to try, in order, for this request, and why that tier was chosen."""
+    from services.ai.core.bedrock_service import get_bedrock_profile_id
+
+    profile = get_bedrock_profile_id()
+    """The models to try, in order, for this request, and why that tier was chosen."""
     available = fallback_models()
     if not enabled():
         return Route("FALLBACK", available, "routing disabled")
@@ -81,4 +85,6 @@ def route(feature: str, *, prompt_chars: int = 0, attachments: int = 0, high_sta
         tier = "STANDARD"
         reasons.append("has attachments" if attachments else f"prompt over {LONG_PROMPT_CHARS:,} characters")
     preferred = [m for m in tier_models(tier) if m in available]
+    if profile:
+        preferred = [profile] + [m for m in preferred if m != profile]
     return Route(tier, preferred + [m for m in available if m not in preferred], "; ".join(reasons))

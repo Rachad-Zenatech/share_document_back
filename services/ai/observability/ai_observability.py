@@ -27,7 +27,7 @@ import uuid
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Callable, AsyncIterator, Dict, Iterator, List, Optional, Tuple
 from uuid import UUID
 
 from postgresql_db.database import get_pool
@@ -245,6 +245,36 @@ def log_prompt(
         submission_id, _clip(prompt), _clip(response), status, error_type, latency_ms, input_tokens, output_tokens,
         guard_verdict, guard_categories or [], json.dumps(pii_redactions or {}), cache_hit,
     ))
+
+
+def classify_error(e: BaseException) -> str:
+    """What kind of failure a model call hit, for telling users why the AI isn't working: KEY, QUOTA, MODEL, BUSY, OTHER."""
+    code = getattr(e, "code", None)
+    msg = str(e).lower()
+    if code in (401, 403) or any(k in msg for k in ("api key", "api_key", "permission_denied", "unauthenticated", "key expired")):
+        return "KEY"
+    if code == 429 or any(k in msg for k in ("resource_exhausted", "quota", "too many requests")):
+        return "QUOTA"
+    if code == 404 or any(k in msg for k in ("no longer available", "not found", "is not supported", "invalid model")):
+        return "MODEL"
+    if code in (500, 503, 504) or any(k in msg for k in ("unavailable", "high demand", "deadline", "timeout", "timed out")) or "timeout" in type(e).__name__.lower():
+        return "BUSY"
+    return "OTHER"
+
+
+attempt_listener: contextvars.ContextVar[Optional[Callable[[Dict[str, Any]], None]]] = contextvars.ContextVar(
+    "ai_attempt_listener", default=None
+)
+
+
+def _notify_attempt(event: Dict[str, Any]) -> None:
+    listener = attempt_listener.get()
+    if listener is None:
+        return
+    try:
+        listener(event)
+    except Exception:
+        pass
 
 
 async def generate(client: Any, *, model: str, contents: Any, config: Any = None, feature: str = "GENERAL",
