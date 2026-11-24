@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable, AsyncIterator, Dict, Iterator, List, Optional, Tuple
 from uuid import UUID
 
-from postgresql_db.database import get_pool
+from postgresql_db.database import fetch_all, get_pool
 from services.ai.observability.ai_guardrails import GuardResult, redact_pii
 from services.shared.core.logging_service import request_id_ctx
 

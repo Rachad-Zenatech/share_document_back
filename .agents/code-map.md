@@ -19,7 +19,7 @@ to find the right file.
 | .agents/code-map/postgresql_db__schemas.md | 6 | 1 KB |
 | .agents/code-map/scripts.md | 1 | 1 KB |
 | .agents/code-map/services__ai__core.md | 5 | 5 KB |
-| .agents/code-map/services__ai__observability.md | 4 | 3 KB |
+| .agents/code-map/services__ai__observability.md | 5 | 4 KB |
 | .agents/code-map/services__microsoft_graph.md | 2 | 2 KB |
 | .agents/code-map/services__notifications.md | 8 | 7 KB |
 | .agents/code-map/services__sec_filings.md | 11 | 6 KB |
