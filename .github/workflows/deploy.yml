@@ -59,7 +59,7 @@ jobs:
       - name: Run Pytest
         run: |
           if [ -d "tests" ]; then
-            pytest tests/
+            PYTHONPATH=. pytest tests/
           fi
 
   docker-build:
