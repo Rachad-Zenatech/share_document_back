@@ -70,13 +70,13 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `get_gemini_client` (def) L90 - A client when GEMINI_API_KEY is configured, otherwise None.
 - `generate_content_with_fallback` (def) L99 - client.models.generate_content, moving to the next model when one is rate
 
-## services/ai/core/model_router.py (120 lines) - Model routing: picks the cheapest suitable model for easy work, and stronger models when needed.
-- `Route` (class) L46
-- `fallback_models` (def) L52 - Every configured Gemini model (GEMINI_AVAILABLE_MODELS), retired ones left out, in priority order.
-- `enabled` (def) L57
-- `tier_models` (def) L61
-- `base_tier` (def) L74
-- `route` (def) L79 - Pick the cheapest appropriate model for easy tasks, and stronger models when needed.
+## services/ai/core/model_router.py (121 lines) - Model routing: picks the cheapest suitable model for easy work, and stronger models when needed.
+- `Route` (class) L47
+- `fallback_models` (def) L53 - Every configured Gemini model (GEMINI_AVAILABLE_MODELS), retired ones left out, in priority order.
+- `enabled` (def) L58
+- `tier_models` (def) L62
+- `base_tier` (def) L75
+- `route` (def) L80 - Pick the cheapest appropriate model for easy tasks, and stronger models when needed.
 
 ## services/ai/core/semantic_cache.py (205 lines) - Semantic cache: reuses an earlier AI answer when a new question means the same thing, so repeated questions don't spend Gemini quota.
 - `_env_float` (def) L39

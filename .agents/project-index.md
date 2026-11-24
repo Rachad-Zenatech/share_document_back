@@ -28,7 +28,7 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - services/ai/core/assistant_chat_service.py (254 lines) - Assistant chat: answers questions about the portal, streamed as SSE.
 - services/ai/core/bedrock_service.py (434 lines) - AWS Bedrock AI Service Adapter.
 - services/ai/core/gemini_service.py (136 lines) - Gemini calls with model rotation (ported from the admin portal's gemini_service).
-- services/ai/core/model_router.py (120 lines) - Model routing: picks the cheapest suitable model for easy work, and stronger models when needed.
+- services/ai/core/model_router.py (121 lines) - Model routing: picks the cheapest suitable model for easy work, and stronger models when needed.
 - services/ai/core/semantic_cache.py (205 lines) - Semantic cache: reuses an earlier AI answer when a new question means the same thing, so repeated questions don't spend Gemini quota.
 - services/ai/observability/ai_guardrails.py (249 lines) - AI guardrails: screening what goes into the model and redacting personal data from what comes out.
 - services/ai/observability/ai_health.py (105 lines) - Whether the AI (Gemini) is working right now, for the banner every signed-in user sees when it isn't.

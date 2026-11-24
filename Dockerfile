@@ -35,4 +35,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')" || exit 1
 
 # Start both FastAPI (background) and MCP server (foreground)
-CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port 8000 --workers 1 & python server.py"]
+CMD ["sh", "-c", "python server.py & exec uvicorn server:app --host 0.0.0.0 --port 8000 --workers 1"]
