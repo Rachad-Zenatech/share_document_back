@@ -25,14 +25,15 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - postgresql_db/setup_rls_security.py (348 lines) - RDS PostgreSQL Role-Based Access Control & Row-Level Security (RLS) Setup.
 - scripts/script_submission_import_eval.py (128 lines) - Shared submission import retry and access regressions; no live database writes.
 - server.py (330 lines) - server
-- services/ai/core/assistant_chat_service.py (254 lines) - Assistant chat: answers questions about the portal, streamed as SSE.
-- services/ai/core/bedrock_service.py (434 lines) - AWS Bedrock AI Service Adapter.
-- services/ai/core/gemini_service.py (136 lines) - Gemini calls with model rotation (ported from the admin portal's gemini_service).
+- services/ai/core/assistant_chat_service.py (258 lines) - Assistant chat: answers questions about the portal, streamed as SSE.
+- services/ai/core/bedrock_service.py (448 lines) - AWS Bedrock AI Service Adapter.
+- services/ai/core/gemini_service.py (196 lines) - Gemini calls with model rotation (ported from the admin portal's gemini_service).
 - services/ai/core/model_router.py (121 lines) - Model routing: picks the cheapest suitable model for easy work, and stronger models when needed.
 - services/ai/core/semantic_cache.py (205 lines) - Semantic cache: reuses an earlier AI answer when a new question means the same thing, so repeated questions don't spend Gemini quota.
 - services/ai/observability/ai_guardrails.py (249 lines) - AI guardrails: screening what goes into the model and redacting personal data from what comes out.
 - services/ai/observability/ai_health.py (105 lines) - Whether the AI (Gemini) is working right now, for the banner every signed-in user sees when it isn't.
-- services/ai/observability/ai_observability.py (398 lines) - AI observability: a trace span for every model call, embedding, retrieval, cache lookup, guard check and tool call, plus a prompt log of ...
+- services/ai/observability/ai_observability.py (425 lines) - AI observability: a trace span for every model call, embedding, retrieval, cache lookup, guard check and tool call, plus a prompt log of ...
+- services/ai/observability/ai_overview_service.py (321 lines) - Combined AI health, feature-to-core mapping, and usage overview for System & Security.
 - services/ai/observability/ai_usage_service.py (141 lines) - AI Usage Limits Caps how often Gemini runs, so one person (or a stuck loop) can't use up the provider quota or run up cost.
 - services/microsoft_graph/graph_service.py (420 lines) - Microsoft Graph API client for employee profile sync.
 - services/microsoft_graph/graph_sync_job.py (132 lines) - Periodic Microsoft Graph sync for already-known employees.
@@ -86,7 +87,7 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - tools/sec_filings/sec_filings.py (550 lines) - SEC filing routes: financial statement table templates.
 - tools/shared/auth_router.py (327 lines) - auth router (shared)
 - tools/shared/log_router.py (74 lines) - log router (shared)
-- tools/shared/observability.py (75 lines) - observability (shared)
+- tools/shared/observability.py (95 lines) - observability (shared)
 - tools/shared/rbac_router.py (204 lines) - rbac router (shared)
 - tools/shared/search.py (177 lines) - Static system pages for quick navigation search with explicit permission codes
 - tools/shared/upload_files.py (160 lines) - Uploaded files & media bucket endpoints backed by S3 and local cache storage.

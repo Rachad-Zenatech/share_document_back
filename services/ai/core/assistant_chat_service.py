@@ -135,8 +135,11 @@ async def _stream_round(client: genai.Client, models: List[str], contents: List[
     """One model turn, streamed. Falls back to the next model only while nothing has been sent yet. Collects the
     turn's parts (text and tool calls, with their thought signatures) in out["parts"]."""
     prompt, _ = ai_observability.describe_contents(contents, config.system_instruction)
+    from services.ai.core.gemini_service import model_is_available, record_model_failure
+
     last_error: Optional[Exception] = None
-    for attempt, model in enumerate(models, start=1):
+    active_models = [m for m in models if model_is_available(m)] or list(models)
+    for attempt, model in enumerate(active_models, start=1):
         sent_any = False
         parts: List[types.Part] = []
         text: List[str] = []
@@ -167,6 +170,7 @@ async def _stream_round(client: genai.Client, models: List[str], contents: List[
                 s.status, s.error_type = "ERROR", type(e).__name__
                 if sent_any or not is_rotatable_model_error(e):
                     raise
+                record_model_failure(model, e)
                 logger.warning("Assistant chat: %s failed (%s), trying the next model", model, e)
                 continue
             input_tokens = ai_observability.int_or_none(getattr(usage, "prompt_token_count", None))
