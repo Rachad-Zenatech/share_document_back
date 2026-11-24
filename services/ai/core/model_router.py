@@ -7,7 +7,7 @@ Three tiers, each an ordered list of models (override with AI_ROUTE_TIER_<TIER>=
     HEAVY     long (>60k chars) or high-stakes requests                  stronger model first, cheap fallback
 
 Each feature has a base tier (AI_ROUTE_<FEATURE>=LIGHT|STANDARD|HEAVY overrides it), and the request can move up:
-multiple attachments (>2) or a long prompt lift LIGHT to STANDARD; a very long prompt or high stakes lift it to HEAVY.
+attachments or a long prompt lift LIGHT to STANDARD; a very long prompt or high stakes lift it to HEAVY.
 AI_ROUTING_ENABLED=false turns routing off (plain fallback order for everything).
 """
 
@@ -90,9 +90,9 @@ def route(feature: str, *, prompt_chars: int = 0, attachments: int = 0, high_sta
                 if tier != "HEAVY":
                     tier = "HEAVY"
                     reasons.append("high stakes" if high_stakes else f"prompt over {VERY_LONG_PROMPT_CHARS:,} characters")
-            elif tier == "LIGHT" and (attachments > 2 or prompt_chars > LONG_PROMPT_CHARS):
+            elif tier == "LIGHT" and (attachments or prompt_chars > LONG_PROMPT_CHARS):
                 tier = "STANDARD"
-                reasons.append("multiple attachments" if attachments > 2 else f"prompt over {LONG_PROMPT_CHARS:,} characters")
+                reasons.append("has attachments" if attachments else f"prompt over {LONG_PROMPT_CHARS:,} characters")
         else:
             tier = "STANDARD"
             reasons = ["routing disabled"]
@@ -113,8 +113,8 @@ def route(feature: str, *, prompt_chars: int = 0, attachments: int = 0, high_sta
         if tier != "HEAVY":
             tier = "HEAVY"
             reasons.append("high stakes" if high_stakes else f"prompt over {VERY_LONG_PROMPT_CHARS:,} characters")
-    elif tier == "LIGHT" and (attachments > 2 or prompt_chars > LONG_PROMPT_CHARS):
+    elif tier == "LIGHT" and (attachments or prompt_chars > LONG_PROMPT_CHARS):
         tier = "STANDARD"
-        reasons.append("multiple attachments" if attachments > 2 else f"prompt over {LONG_PROMPT_CHARS:,} characters")
+        reasons.append("has attachments" if attachments else f"prompt over {LONG_PROMPT_CHARS:,} characters")
     preferred = [m for m in tier_models(tier) if m in available]
     return Route(tier, preferred + [m for m in available if m not in preferred], "; ".join(reasons))
