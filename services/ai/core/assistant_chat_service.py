@@ -23,8 +23,7 @@ from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Dict, List, Optional
 from uuid import UUID
 
-from google import genai
-from google.genai import types
+from services.ai.core import ai_types as types
 
 from services.ai.observability import ai_observability
 from services.ai.core import model_router
@@ -51,13 +50,14 @@ BLOCKED_MESSAGE = (
     "Rephrase it as a question about the portal."
 )
 
-_client: Optional[genai.Client] = None
+_client: Optional[Any] = None
 
 
-def _get_client() -> Optional[genai.Client]:
+def _get_client() -> Optional[Any]:
     global _client
-    if _client is None and os.getenv("GEMINI_API_KEY"):
-        _client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    if _client is None:
+        from services.ai.core.bedrock_service import get_ai_client
+        _client = get_ai_client()
     return _client
 
 
@@ -129,7 +129,7 @@ def _contents(prepared: PreparedChat) -> List[types.Content]:
     return contents
 
 
-async def _stream_round(client: genai.Client, models: List[str], contents: List[types.Content],
+async def _stream_round(client: Any, models: List[str], contents: List[types.Content],
                         config: types.GenerateContentConfig, prepared: PreparedChat, round_no: int,
                         redactor: StreamRedactor, out: Dict[str, Any]) -> AsyncIterator[str]:
     """One model turn, streamed. Falls back to the next model only while nothing has been sent yet. Collects the
@@ -145,7 +145,7 @@ async def _stream_round(client: genai.Client, models: List[str], contents: List[
         text: List[str] = []
         usage = None
         started = time.perf_counter()
-        async with span("model", "gemini.generate_content_stream", model=model, feature=FEATURE, round=round_no,
+        async with span("model", "bedrock.generate_content_stream", model=model, feature=FEATURE, round=round_no,
                         attempt=attempt, prompt_chars=len(prompt)) as s:
             try:
                 stream = await client.aio.models.generate_content_stream(model=model, contents=contents, config=config)

@@ -25,8 +25,6 @@ import unicodedata
 from dataclasses import dataclass
 from typing import List, Optional
 
-from google import genai
-from google.genai import types
 
 from postgresql_db.database import get_pool
 from services.ai.observability.ai_observability import span
@@ -50,8 +48,8 @@ CANDIDATES = 2000  # newest live entries compared per lookup
 
 
 def is_enabled() -> bool:
-    return (os.getenv("AI_SEMANTIC_CACHE_ENABLED", "true").strip().lower() not in {"0", "false", "no", "off"}
-            and bool(os.getenv("GEMINI_API_KEY")))
+    # Disabled until Bedrock embeddings are mapped for semantic cache in this portal.
+    return False
 
 
 @dataclass
@@ -81,30 +79,8 @@ def numbers(text: str) -> List[str]:
     return sorted({n.replace(",", "") for n in _NUMBER.findall(text)})
 
 
-_client: Optional[genai.Client] = None
-
-
-def _gemini_client() -> genai.Client:
-    global _client
-    if _client is None:
-        _client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-    return _client
-
-
 async def _embed(text: str) -> List[float]:
-    client = _gemini_client()
-    model = (os.getenv("AI_SEMANTIC_CACHE_EMBEDDING_MODEL", "").strip()
-             or os.getenv("VECTOR_EMBEDDING_MODEL", "").strip() or "gemini-embedding-2")
-    async with span("embedding", "gemini.embed_content", model=model, texts=1, chars=len(text), purpose="semantic_cache"):
-        res = await client.aio.models.embed_content(
-            model=model,
-            contents=[types.Content(parts=[types.Part(text=text)])],
-            config=types.EmbedContentConfig(output_dimensionality=DIMENSIONS, task_type="SEMANTIC_SIMILARITY"),
-        )
-    values = list((res.embeddings or [])[0].values or [])
-    norm = math.sqrt(sum(v * v for v in values)) or 1.0
-    return [v / norm for v in values]
-
+    raise RuntimeError("Semantic cache embeddings are not enabled.")
 
 async def lookup(feature: str, scope: str, question: str) -> Lookup:
     """A cached answer to the question, if any. Never raises: a cache problem just means answering normally."""

@@ -17,10 +17,8 @@ from typing import Any, Callable, Dict, List, Optional
 from uuid import UUID
 
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
-from google.genai import errors
 from fastmcp.prompts import Prompt
+from services.ai.core import ai_types as types
 
 from mcp_tools.prompts import ALL_PROMPTS
 from mcp_tools.shared.permissions import list_my_accessible_tools_tool
@@ -30,6 +28,9 @@ from services.ai.observability.ai_observability import span
 
 load_dotenv()
 logger = logging.getLogger(__name__)
+
+from services.ai.core.bedrock_service import get_ai_client
+gemini_client = get_ai_client()
 
 # Registered MCP tools for this template
 ALL_TOOLS = [
@@ -45,10 +46,6 @@ TOOLS_BY_NAME: Dict[str, Callable[..., Any]] = {t.__name__: t for t in ALL_TOOLS
 
 def tool_code(name: str) -> str:
     return MCP_TOOL_CODE_MAP.get(name, name)
-
-# Setup Gemini Client if API key is provided
-gemini_key = os.getenv("GEMINI_API_KEY")
-gemini_client = genai.Client(api_key=gemini_key) if gemini_key else None
 
 
 def _normalize_ai_model_name(name: str) -> str:
@@ -88,10 +85,10 @@ async def generate_with_fallback(contents, config):
                     contents=contents,
                     config=config,
                 )
-            except errors.ServerError as e:
+            except Exception as e:
                 last_error = e
                 await asyncio.sleep(0.5)
-            except errors.APIError as e:
+            except Exception as e:
                 last_error = e
                 break
             except Exception as e:
