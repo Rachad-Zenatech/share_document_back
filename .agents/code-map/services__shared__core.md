@@ -22,7 +22,7 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
     - `handle_notification` (def) L125
 - `start_cache_invalidation_listener` (def) L139 - Background worker that listens for PostgreSQL NOTIFY events on CACHE_CHANNEL.
 
-## services/shared/core/http_middleware.py (299 lines) - HTTP middleware registration for session, rate limiting, security headers, observability, and CORS.
+## services/shared/core/http_middleware.py (308 lines) - HTTP middleware registration for session, rate limiting, security headers, observability, and CORS.
 - `_env_flag` (def) L23
 - `_sweep_rate_buckets` (def) L47
 - `_client_ip` (def) L52
@@ -37,7 +37,7 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `_register_observability_middleware` (def) L195
     - `request_observability` (def) L197
 - `_register_cors_middleware` (def) L266
-- `register_http_middlewares` (def) L282 - Register HTTP middlewares in the exact Starlette LIFO order expected by server.py.
+- `register_http_middlewares` (def) L291 - Register HTTP middlewares in the exact Starlette LIFO order expected by server.py.
 
 ## services/shared/core/logging_service.py (118 lines) - Structured application logging suitable for container stdout and CloudWatch Logs.
 - `JsonFormatter` (class) L39 - Emit one compact JSON object per line for CloudWatch Logs Insights.

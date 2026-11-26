@@ -268,6 +268,15 @@ def _register_cors_middleware(app: FastAPI, *, is_prod: bool) -> None:
     cors_origins = [orig.strip() for orig in cors_env.split(",") if orig.strip()] if cors_env else []
     cors_regex = None if is_prod else r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.\d+\.\d+\.\d+)(:\d+)?$"
 
+    from services.shared.auth.auth_service import AUTH_COOKIE_NAME
+    from services.shared.cookie_origin_protection import CookieOriginProtection
+
+    app.add_middleware(
+        CookieOriginProtection,
+        cookie_names={AUTH_COOKIE_NAME, "zenatech_access_token"},
+        allowed_origins=cors_origins,
+        allowed_origin_regex=cors_regex,
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,

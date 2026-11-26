@@ -25,6 +25,7 @@ to find the right file.
 | .agents/code-map/services__sec_filings.md | 11 | 6 KB |
 | .agents/code-map/services__sec_filings__documents.md | 5 | 4 KB |
 | .agents/code-map/services__sec_filings__workflow.md | 3 | 2 KB |
+| .agents/code-map/services__shared.md | 1 | 1 KB |
 | .agents/code-map/services__shared__auth.md | 4 | 3 KB |
 | .agents/code-map/services__shared__core.md | 5 | 3 KB |
 | .agents/code-map/services__shared__storage.md | 3 | 3 KB |

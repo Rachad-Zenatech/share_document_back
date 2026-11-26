@@ -69,9 +69,10 @@ For function and route definitions with their line numbers, grep `.agents/code-m
 - services/shared/auth/microsoft_auth_service.py (231 lines) - Microsoft Entra SSO claims parsing, user provisioning, and department resolution.
 - services/shared/auth/rbac_service.py (746 lines) - Utility for audit logging
 - services/shared/auth/service_security_policy.py (248 lines) - Enterprise Application Security & Scope Authorization Policy Defines the strict Application-to-Application Access Matrix (Machine-to-Mach...
+- services/shared/cookie_origin_protection.py (39 lines) - Reject cross-origin state-changing requests carrying a browser session.
 - services/shared/core/audit_service.py (141 lines) - audit service (shared core)
 - services/shared/core/cache_service.py (183 lines) - cache service (shared core)
-- services/shared/core/http_middleware.py (299 lines) - HTTP middleware registration for session, rate limiting, security headers, observability, and CORS.
+- services/shared/core/http_middleware.py (308 lines) - HTTP middleware registration for session, rate limiting, security headers, observability, and CORS.
 - services/shared/core/logging_service.py (118 lines) - Structured application logging suitable for container stdout and CloudWatch Logs.
 - services/shared/core/secret_config.py (18 lines) - Validated secret lookup from environment variables with no hardcoded fallbacks.
 - services/shared/storage/s3_storage_service.py (263 lines) - AWS S3 storage helper with hardened defaults, presigned URLs, and local-cache hydration.
