@@ -54,17 +54,18 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `writer_loop` (def) L375 - Wait for records and write each burst in one batch; hourly (when idle) apply retention.
 - `list_ai_errors` (def) L400 - Recent AI errors and blocked calls within `hours`, optionally filtered by feature and/or model.
 
-## services/ai/observability/ai_overview_service.py (340 lines) - Combined AI health, feature-to-core mapping, and usage overview for System & Security.
-- `_has_core` (def) L37
-- `_routing_tier` (def) L41
-- `_features_by_core` (def) L51
-- `_get_bedrock_service` (def) L59
-- `_get_ai_health` (def) L68
-- `_get_ai_usage_service` (def) L76
-- `_fetch_usage_aggregates` (def) L84
-- `_build_overview_cores` (def) L161
-- `_build_overview_features` (def) L220
-- `get_ai_overview` (def) L281
+## services/ai/observability/ai_overview_service.py (365 lines) - Combined AI health, feature-to-core mapping, and usage overview for System & Security.
+- `_has_core` (def) L38
+- `_routing_tier` (def) L42
+- `_features_by_core` (def) L52
+- `_get_bedrock_service` (def) L60
+- `_get_ai_health` (def) L69
+- `_get_ai_usage_service` (def) L77
+- `_fetch_usage_aggregates` (def) L85
+- `_build_overview_cores` (def) L162
+- `_build_overview_features` (def) L221
+- `_fetch_health_dict` (def) L282 - Read AI health status as a dict, supporting both status() and get_status_dict().
+- `get_ai_overview` (def) L304
 
 ## services/ai/observability/ai_usage_service.py (141 lines) - AI Usage Limits Caps how often Gemini runs, so one person (or a stuck loop) can't use up the provider quota or run up cost.
 - `_env_int` (def) L35

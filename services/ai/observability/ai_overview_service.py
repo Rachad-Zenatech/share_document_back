@@ -1,6 +1,7 @@
 """Combined AI health, feature-to-core mapping, and usage overview for System & Security."""
 
 from datetime import datetime, timezone
+import inspect
 import json
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -278,10 +279,31 @@ def _build_overview_features(
     return features
 
 
+async def _fetch_health_dict() -> Dict[str, Any]:
+    """Read AI health status as a dict, supporting both status() and get_status_dict()."""
+    default: Dict[str, Any] = {"available": True, "reason": None, "feature_issues": []}
+    ai_health = _get_ai_health()
+    if not ai_health:
+        return default
+    try:
+        if hasattr(ai_health, "get_status_dict"):
+            res = ai_health.get_status_dict()
+            if inspect.isawaitable(res):
+                res = await res
+            return res if isinstance(res, dict) else default
+        if hasattr(ai_health, "status"):
+            st = await ai_health.status()
+            data = st.model_dump() if hasattr(st, "model_dump") else dict(st)
+            data.setdefault("feature_issues", [])
+            return data
+    except Exception:
+        return default
+    return default
+
+
 async def get_ai_overview(hours: int = 24, user_id: Optional[UUID] = None) -> Dict[str, Any]:
     usage = await _fetch_usage_aggregates(hours)
-    ai_health = _get_ai_health()
-    health_dict = ai_health.get_status_dict() if ai_health else {"available": True, "reason": None, "feature_issues": []}
+    health_dict = await _fetch_health_dict()
 
     feature_issues = {}
     for issue in health_dict.get("feature_issues", []):
@@ -290,10 +312,13 @@ async def get_ai_overview(hours: int = 24, user_id: Optional[UUID] = None) -> Di
 
     usage_service = _get_ai_usage_service()
     quota_by_feature: Dict[str, Any] = {}
-    if usage_service and hasattr(usage_service, "get_user_usage_summary") and user_id is not None:
+    if usage_service and user_id is not None:
         try:
-            q = await usage_service.get_user_usage_summary(user_id)
-            quota_by_feature = q.get("features") or {}
+            if hasattr(usage_service, "get_user_usage_summary"):
+                q = await usage_service.get_user_usage_summary(user_id)
+                quota_by_feature = q.get("features") or {}
+            elif hasattr(usage_service, "usage_for"):
+                quota_by_feature = await usage_service.usage_for(user_id) or {}
         except Exception:
             quota_by_feature = {}
 
