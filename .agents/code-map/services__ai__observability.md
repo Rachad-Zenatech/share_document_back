@@ -54,7 +54,7 @@ Each symbol shows its start line (`L<n>`); read from there to the next symbol's 
 - `writer_loop` (def) L375 - Wait for records and write each burst in one batch; hourly (when idle) apply retention.
 - `list_ai_errors` (def) L400 - Recent AI errors and blocked calls within `hours`, optionally filtered by feature and/or model.
 
-## services/ai/observability/ai_overview_service.py (365 lines) - Combined AI health, feature-to-core mapping, and usage overview for System & Security.
+## services/ai/observability/ai_overview_service.py (383 lines) - Combined AI health, feature-to-core mapping, and usage overview for System & Security.
 - `_has_core` (def) L38
 - `_routing_tier` (def) L42
 - `_features_by_core` (def) L52
