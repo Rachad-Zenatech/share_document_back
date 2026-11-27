@@ -261,6 +261,8 @@ jobs:
           FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
           CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS || secrets.FRONTEND_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_PROFILE_ID: ${{ secrets.AWS_PROFILE_ID || vars.AWS_PROFILE_ID }}
           SCRIPT_SERVICE_SECRET: ${{ secrets.SCRIPT_SERVICE_SECRET }}
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
           AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME || vars.AWS_S3_BUCKET_NAME || secrets.S3_BUCKET_NAME || vars.S3_BUCKET_NAME }}
@@ -313,7 +315,10 @@ jobs:
           [ -n "$JWT_SECRET" ] || warn "JWT_SECRET not set; falling back to SESSION_SECRET for JWT signing"
           [ -n "$SCRIPT_SERVICE_SECRET" ] || warn "SCRIPT_SERVICE_SECRET not set; script service API auth will fall back to JWT_SECRET/SESSION_SECRET"
           [ -n "$CORS_ALLOWED_ORIGINS" ] || warn "CORS_ALLOWED_ORIGINS/FRONTEND_URL not set; browsers will be blocked by CORS"
-          [ -n "$GEMINI_API_KEY" ] || warn "GEMINI_API_KEY not set; AI features will be disabled (PDF import falls back to layout-only conversion)"
+          [ -n "$GEMINI_API_KEY" ] || [ -n "$AWS_BEARER_TOKEN_BEDROCK" ] || warn "Neither AWS_BEARER_TOKEN_BEDROCK nor GEMINI_API_KEY is set; AI features will be disabled (PDF import falls back to layout-only conversion)"
+          if [ -n "$AWS_BEARER_TOKEN_BEDROCK" ] && [ -z "$AWS_PROFILE_ID" ]; then
+            warn "AWS_BEARER_TOKEN_BEDROCK is set without AWS_PROFILE_ID; Bedrock AI will report unconfigured"
+          fi
           if [ -n "$AWS_ACCESS_KEY" ] && [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
             warn "AWS access key is set without AWS_SECRET_ACCESS_KEY; security group SSH rule will not be managed"
           fi
@@ -360,6 +365,11 @@ jobs:
           DB_POOL_MAX_INACTIVE_LIFETIME: ${{ vars.DB_POOL_MAX_INACTIVE_LIFETIME || '300.0' }}
           DB_COMMAND_TIMEOUT: ${{ vars.DB_COMMAND_TIMEOUT || '120.0' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_PROFILE_ID: ${{ secrets.AWS_PROFILE_ID || vars.AWS_PROFILE_ID }}
+          AWS_AI_REGION: ${{ secrets.AWS_AI_REGION || vars.AWS_AI_REGION }}
+          BEDROCK_CHEAP_PROFILE_ID: ${{ secrets.BEDROCK_CHEAP_PROFILE_ID || vars.BEDROCK_CHEAP_PROFILE_ID }}
+          BEDROCK_HEAVY_PROFILE_ID: ${{ secrets.BEDROCK_HEAVY_PROFILE_ID || vars.BEDROCK_HEAVY_PROFILE_ID }}
           GEMINI_AVAILABLE_MODELS: ${{ secrets.GEMINI_AVAILABLE_MODELS || vars.GEMINI_AVAILABLE_MODELS }}
           GEMINI_TIMEOUT_SECONDS: ${{ vars.GEMINI_TIMEOUT_SECONDS }}
           SEC_PDF_IMPORT_PAGES_PER_CHUNK: ${{ vars.SEC_PDF_IMPORT_PAGES_PER_CHUNK }}
@@ -437,7 +447,7 @@ jobs:
               printf 'GEMINI_AVAILABLE_MODELS=%s\n' "$GEMINI_AVAILABLE_MODELS"
             fi
             # Optional tuning; the app has defaults for each (see .env.example).
-            for name in GEMINI_TIMEOUT_SECONDS SEC_PDF_IMPORT_PAGES_PER_CHUNK SEC_PDF_IMPORT_CONCURRENCY SEC_PDF_IMPORT_MAX_PAGES SEC_GUEST_INVITE_TTL_DAYS; do
+            for name in GEMINI_TIMEOUT_SECONDS AWS_BEARER_TOKEN_BEDROCK AWS_PROFILE_ID AWS_AI_REGION BEDROCK_CHEAP_PROFILE_ID BEDROCK_HEAVY_PROFILE_ID SEC_PDF_IMPORT_PAGES_PER_CHUNK SEC_PDF_IMPORT_CONCURRENCY SEC_PDF_IMPORT_MAX_PAGES SEC_GUEST_INVITE_TTL_DAYS; do
               if [ -n "${!name}" ]; then
                 printf '%s=%s\n' "$name" "${!name}"
               fi
